@@ -70,6 +70,29 @@ function cashout() {
 
   running = false;
 }
+  <script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-app.js";
+import { getDatabase, ref, set, get, child, update } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDCYEveGXPy1nORiyyeyIjsbfcqEy4iaVg",
+  authDomain: "avaitior-game.firebaseapp.com",
+  databaseURL: "https://avaitior-game-default-rtdb.firebaseio.com",
+  projectId: "avaitior-game",
+  storageBucket: "avaitior-game.firebasestorage.app",
+  messagingSenderId: "945770227622",
+  appId: "1:945770227622:web:927b25e4e9b05210f79167"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+window.db = db;
+window.ref = ref;
+window.set = set;
+window.get = get;
+window.child = child;
+window.update = update;
 </script>
 
 </body>
