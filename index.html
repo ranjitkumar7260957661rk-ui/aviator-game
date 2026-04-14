@@ -2,26 +2,18 @@
 <html>
 <head>
 <title>Aviator Game</title>
-
 <style>
 body { background:#111; color:#fff; text-align:center; font-family:sans-serif; }
-
-.page { display:none; }
-
-#plane {
-  position:absolute;
-  width:60px;
-  left:10px;
-  top:250px;
-  transition: all 0.1s linear;
-}
+input, button { padding:10px; margin:5px; }
+#game { display:none; }
+#plane { font-size:40px; transition: all 0.2s linear; }
 </style>
 </head>
 
 <body>
 
 <!-- LOGIN -->
-<div id="login" class="page" style="display:block;">
+<div id="login">
 <h2>Login</h2>
 <input id="mobile" placeholder="Mobile"><br>
 <input id="pass" type="password" placeholder="Password"><br>
@@ -29,128 +21,110 @@ body { background:#111; color:#fff; text-align:center; font-family:sans-serif; }
 </div>
 
 <!-- GAME -->
-<div id="game" class="page">
-<h3>Balance: ₹<span id="bal">100</span></h3>
+<div id="game">
+<h1>✈️ Aviator</h1>
+<h3>Balance: ₹<span id="bal">0</span></h3>
 
-<h1 id="multi">1.00x</h1>
+<input id="bet" placeholder="Enter Bet"><br>
 
-<img id="plane" src="https://i.imgur.com/6QZ6Z6X.png">
-
-<input id="bet" placeholder="Bet"><br>
 <button onclick="startGame()">Start</button>
-<button onclick="cashout()">Cashout</button><br>
+<button onclick="cashout()">Cashout</button>
 
-<h4 id="status"></h4>
+<h2 id="multi">1.00x</h2>
+<div id="plane">✈️</div>
 </div>
 
 <script>
-let currentUser="";
-let balance=100;
+let balance = 0;
+let multi = 1;
+let running = false;
+let user = "";
 
-// LOAD BALANCE
-if(localStorage.getItem("balance")){
-  balance = Number(localStorage.getItem("balance"));
-}
-document.getElementById("bal").innerText = balance;
+// LOGIN SYSTEM
+function login() {
+  let m = document.getElementById("mobile").value;
+  let p = document.getElementById("pass").value;
 
-// LOGIN
-function login(){
-let m=mobile.value;
-let p=pass.value;
+  if(m.length < 5 || p.length < 3){
+    alert("Enter valid details");
+    return;
+  }
 
-if(!m || !p) return alert("Fill details");
+  user = m;
 
-currentUser = m;
+  let saved = localStorage.getItem("user_"+m);
+  if(saved){
+    balance = Number(saved);
+  } else {
+    balance = 100; // first time bonus
+    localStorage.setItem("user_"+m, balance);
+  }
 
-if(!localStorage.getItem("user_"+m)){
-  localStorage.setItem("user_"+m, JSON.stringify({pass:p, balance:100}));
-}else{
-  let data = JSON.parse(localStorage.getItem("user_"+m));
-  if(data.pass !== p) return alert("Wrong password");
-  balance = data.balance;
-}
-
-document.getElementById("bal").innerText = balance;
-document.getElementById("login").style.display="none";
-document.getElementById("game").style.display="block";
-}
-
-// SAVE
-function save(){
-localStorage.setItem("user_"+currentUser, JSON.stringify({pass:pass.value, balance:balance}));
+  document.getElementById("bal").innerText = balance;
+  document.getElementById("login").style.display = "none";
+  document.getElementById("game").style.display = "block";
 }
 
-// GAME
-let running=false;
-let multi=1;
-let crash=0;
-let interval;
-let x=10;
+// GAME START
+function startGame() {
+  let bet = Number(document.getElementById("bet").value);
 
-function startGame(){
-let betVal = Number(document.getElementById("bet").value);
+  if (!bet || bet <= 0 || bet > balance) {
+    alert("Invalid Bet");
+    return;
+  }
 
-if(!betVal || betVal<=0 || betVal>balance){
-alert("Enter valid bet");
-return;
+  balance -= bet;
+  updateBalance();
+
+  multi = 1;
+  running = true;
+
+  let crash = Math.random() * 5 + 1;
+
+  let plane = document.getElementById("plane");
+  plane.style.transform = "translateX(0px)";
+
+  let interval = setInterval(() => {
+    if (!running) {
+      clearInterval(interval);
+      return;
+    }
+
+    multi += 0.05;
+    document.getElementById("multi").innerText = multi.toFixed(2) + "x";
+
+    // plane move
+    let move = multi * 20;
+    plane.style.transform = "translateX(" + move + "px)";
+
+    if (multi >= crash) {
+      document.getElementById("multi").innerText = "💥 Crashed!";
+      running = false;
+      clearInterval(interval);
+    }
+
+  }, 200);
 }
 
-balance -= betVal;
-updateBal();
+// CASHOUT
+function cashout() {
+  if (!running) return;
 
-multi=1;
-x=10;
-crash = Math.random()*5+1;
-running=true;
+  let bet = Number(document.getElementById("bet").value);
+  let win = bet * multi;
 
-let plane = document.getElementById("plane");
+  balance += win;
+  updateBalance();
 
-plane.style.left="10px";
-plane.style.top="250px";
-
-interval = setInterval(()=>{
-if(!running) return;
-
-multi+=0.05;
-x += multi*3;
-
-plane.style.left = x+"px";
-plane.style.top = (250 - multi*15)+"px";
-
-document.getElementById("multi").innerText = multi.toFixed(2)+"x";
-
-if(multi>=crash){
-running=false;
-clearInterval(interval);
-
-plane.style.transition="all 0.5s";
-plane.style.left=(x+200)+"px";
-plane.style.top="0px";
-
-document.getElementById("status").innerText="💥 Crashed";
-save();
-}
-},100);
+  running = false;
+  document.getElementById("multi").innerText = "✅ Cashed: ₹" + win.toFixed(2);
 }
 
-function cashout(){
-if(running){
-let betVal = Number(document.getElementById("bet").value);
-let win = betVal * multi;
-
-balance += win;
-running=false;
-clearInterval(interval);
-
-document.getElementById("status").innerText="✅ Cashed Out ₹"+Math.floor(win);
-updateBal();
-save();
-}
-}
-
-function updateBal(){
-document.getElementById("bal").innerText = Math.floor(balance);
-localStorage.setItem("balance", balance);
+// SAVE BALANCE
+function updateBalance(){
+  document.getElementById("bal").innerText = balance;
+  localStorage.setItem("user_"+user, balance);
 }
 </script>
 
