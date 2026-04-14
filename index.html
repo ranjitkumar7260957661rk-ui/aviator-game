@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Aviator Full Game</title>
+<title>Aviator Final</title>
 
 <style>
 body { background:#111; color:#fff; text-align:center; font-family:sans-serif; }
@@ -16,14 +16,13 @@ input, button {
   font-size:40px;
   position:relative;
   left:0;
-  transition: all 0.1s linear;
 }
 </style>
 </head>
 
 <body>
 
-<h2 id="title">Login</h2>
+<h2>Login</h2>
 
 <div id="login">
   <input id="mobile" placeholder="Mobile"><br>
@@ -41,7 +40,6 @@ input, button {
   <h1 id="multi">1.00x</h1>
 
   <input id="bet" placeholder="Bet"><br>
-  <button onclick="start()">Start</button>
   <button onclick="cashout()">Cashout</button>
 </div>
 
@@ -71,106 +69,123 @@ const firebaseConfig = {
   apiKey: "AIzaSyDCYEveGXPy1nORiyyeyIjsbfcqEy4iaVg",
   authDomain: "avaitior-game.firebaseapp.com",
   databaseURL: "https://avaitior-game-default-rtdb.firebaseio.com",
-  projectId: "avaitior-game",
+  projectId: "avaitior-game"
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-let user = "";
-let balance = 0;
-let multi = 1;
-let interval;
-let running = false;
+let user="";
+let balance=0;
+let multi=1;
+let running=false;
+let bet=0;
 
-window.login = async function() {
+// LOGIN
+window.login = async function(){
   user = document.getElementById("mobile").value;
   let pass = document.getElementById("pass").value;
 
   if(!user || !pass) return alert("Fill details");
 
   const snapshot = await get(child(ref(db), "users/"+user));
-  
+
   if(snapshot.exists()){
-    balance = snapshot.val().balance;
+    balance = Number(snapshot.val().balance) || 0;
   } else {
     balance = 100;
-    await set(ref(db,"users/"+user), {balance:100});
+    await set(ref(db,"users/"+user), {balance: balance});
   }
 
   document.getElementById("bal").innerText = balance;
+
   document.getElementById("login").style.display="none";
   document.getElementById("game").style.display="block";
+
+  startRound();
 }
 
-window.start = function(){
-  let bet = Number(document.getElementById("bet").value);
-  if(bet<=0 || bet>balance) return alert("Invalid Bet");
-
-  balance -= bet;
-  updateBal();
-
+// GAME AUTO ROUND
+function startRound(){
   multi = 1;
   running = true;
-  let pos = 0;
+  bet = Number(document.getElementById("bet").value) || 0;
 
-  interval = setInterval(()=>{
+  let pos = 0;
+  document.getElementById("plane").style.left="0px";
+
+  let interval = setInterval(()=>{
     multi += 0.05;
-    pos += 5;
+    pos += 4;
 
     document.getElementById("multi").innerText = multi.toFixed(2)+"x";
     document.getElementById("plane").style.left = pos+"px";
 
-    if(Math.random()<0.03){
+    if(Math.random() < 0.03){
       clearInterval(interval);
       running=false;
-      alert("Crashed at "+multi.toFixed(2));
+
+      document.getElementById("multi").innerText = "💥 "+multi.toFixed(2);
+
+      setTimeout(startRound,3000);
     }
 
   },100);
 }
 
+// CASHOUT
 window.cashout = function(){
   if(!running) return;
-  running=false;
-  clearInterval(interval);
 
-  let win = multi * Number(document.getElementById("bet").value);
+  running=false;
+
+  let b = Number(document.getElementById("bet").value);
+
+  if(isNaN(b) || b<=0) return alert("Enter bet first");
+
+  if(b > balance) return alert("Low balance");
+
+  let win = b * multi;
+
   balance += win;
 
   updateBal();
+
   alert("Won ₹"+win.toFixed(0));
 }
 
+// UPDATE BALANCE
 function updateBal(){
   document.getElementById("bal").innerText = balance;
   set(ref(db,"users/"+user+"/balance"), balance);
 }
 
-window.showDeposit = ()=> {
+// PAGES
+window.showDeposit = ()=>{
   document.getElementById("game").style.display="none";
   document.getElementById("depositPage").style.display="block";
 }
 
-window.showWithdraw = ()=> {
+window.showWithdraw = ()=>{
   document.getElementById("game").style.display="none";
   document.getElementById("withdrawPage").style.display="block";
 }
 
-window.back = ()=> {
+window.back = ()=>{
   document.getElementById("depositPage").style.display="none";
   document.getElementById("withdrawPage").style.display="none";
   document.getElementById("game").style.display="block";
 }
 
+// DEPOSIT
 window.deposit = ()=>{
-  alert("Request Sent (Manual Approve)");
+  let amt = document.getElementById("depAmt").value;
+  let utr = document.getElementById("utr").value;
+
+  if(!amt || !utr) return alert("Fill all");
+
+  alert("Deposit request saved (manual check)");
 }
 
+// WITHDRAW
 window.withdraw = ()=>{
-  alert("Withdraw Request Sent");
-}
-</script>
-
-</body>
-</html>
