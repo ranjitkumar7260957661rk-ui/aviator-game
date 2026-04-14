@@ -1,0 +1,111 @@
+const express = require("express");
+const bodyParser = require("body-parser");
+const low = require("lowdb");
+const FileSync = require("lowdb/adapters/FileSync");
+
+const adapter = new FileSync("db.json");
+const db = low(adapter);
+
+db.defaults({ users: [], deposits: [], withdraws: [] }).write();
+
+const app = express();
+app.use(bodyParser.json());
+app.use(express.static("public"));
+
+// LOGIN
+app.post("/login", (req, res) => {
+  const { mobile, password } = req.body;
+
+  let user = db.get("users").find({ mobile }).value();
+
+  if (!user) {
+    user = { mobile, password, balance: 0 };
+    db.get("users").push(user).write();
+  }
+
+  res.json(user);
+});
+
+// DEPOSIT
+app.post("/deposit", (req, res) => {
+  const { mobile, amount, utr } = req.body;
+
+  if (amount > 500) return res.send("Max 500");
+
+  db.get("deposits")
+    .push({ mobile, amount, utr, status: "pending" })
+    .write();
+
+  res.send("ok");
+});
+
+// WITHDRAW
+app.post("/withdraw", (req, res) => {
+  const { mobile, amount, name, acc, ifsc } = req.body;
+
+  if (amount > 1000) return res.send("Max 1000");
+
+  db.get("withdraws")
+    .push({ mobile, amount, name, acc, ifsc, status: "pending" })
+    .write();
+
+  res.send("ok");
+});
+
+// ADMIN
+app.get("/admin", (req, res) => {
+  res.json({
+    deposits: db.get("deposits").value(),
+    withdraws: db.get("withdraws").value(),
+    users: db.get("users").value()
+  });
+});
+
+app.listen(3000, () => console.log("🚀 Server running"));
+// ===== ADMIN APIs =====
+
+// Admin data
+app.get('/admin-data', (req, res) => {
+  res.json({
+    deposits: db.data.deposits || [],
+    withdraws: db.data.withdraws || []
+  });
+});
+
+// Approve deposit
+app.get('/approve-deposit/:id', async (req, res) => {
+  let id = req.params.id;
+  let dep = db.data.deposits[id];
+
+  if (dep && dep.status === "pending") {
+    dep.status = "approved";
+
+    let user = db.data.users.find(u => u.mobile === dep.mobile);
+    if (user) {
+      user.balance += Number(dep.amount);
+    }
+
+    await db.write();
+  }
+
+  res.send("Deposit Approved");
+});
+
+// Approve withdraw
+app.get('/approve-withdraw/:id', async (req, res) => {
+  let id = req.params.id;
+  let w = db.data.withdraws[id];
+
+  if (w && w.status === "pending") {
+    w.status = "approved";
+
+    let user = db.data.users.find(u => u.mobile === w.mobile);
+    if (user) {
+      user.balance -= Number(w.amount);
+    }
+
+    await db.write();
+  }
+
+  res.send("Withdraw Approved");
+});

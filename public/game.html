@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Aviator</title>
+<style>
+body { background:black; color:white; text-align:center; }
+button { padding:10px; margin:5px; }
+</style>
+</head>
+
+<body>
+
+<h2>✈️ Aviator Game</h2>
+
+<button onclick="location='deposit.html'">Deposit</button>
+<button onclick="location='withdraw.html'">Withdraw</button>
+
+<h3>Balance: ₹<span id="bal">0</span></h3>
+<h1 id="multi">1.00x</h1>
+
+<input id="bet" placeholder="Bet Amount">
+<button onclick="startBet()">Bet</button>
+<button onclick="cashout()">Cashout</button>
+
+<script>
+
+let mobile = localStorage.getItem("mobile");
+let balance = 0;
+let multi = 1;
+let running = false;
+let betAmount = 0;
+
+// Load balance
+async function loadUser(){
+  let res = await fetch('/user-data?mobile='+mobile);
+  let data = await res.json();
+  balance = data.balance;
+  document.getElementById("bal").innerText = balance;
+}
+loadUser();
+
+// Game loop
+setInterval(()=>{
+  if(!running){
+    multi = 1;
+    document.getElementById("multi").innerText = "1.00x";
+    setTimeout(startGame,2000);
+  }
+},5000);
+
+function startGame(){
+  running = true;
+  let crash = Math.random()*5+1;
+
+  let int = setInterval(()=>{
+    multi += 0.05;
+    document.getElementById("multi").innerText = multi.toFixed(2)+"x";
+
+    if(multi >= crash){
+      clearInterval(int);
+      running = false;
+      betAmount = 0;
+    }
+
+  },100);
+}
+
+// Bet
+async function startBet(){
+  betAmount = Number(document.getElementById("bet").value);
+
+  if(betAmount > balance){
+    alert("Low balance");
+    return;
+  }
+
+  balance -= betAmount;
+  document.getElementById("bal").innerText = balance;
+
+  await fetch('/update-balance',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({mobile, amount: -betAmount})
+  });
+}
+
+// Cashout
+async function cashout(){
+  if(running && betAmount > 0){
+    let win = betAmount * multi;
+    balance += win;
+    document.getElementById("bal").innerText = balance;
+
+    await fetch('/update-balance',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({mobile, amount: win})
+    });
+
+    alert("Win ₹"+win.toFixed(0));
+    betAmount = 0;
+  }
+}
+
+</script>
+
+</body>
+</html>

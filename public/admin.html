@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Admin Panel</title>
+<style>
+body { background:black; color:white; text-align:center; font-family:sans-serif; }
+input, button { padding:10px; margin:5px; }
+button { background:red; color:white; border:none; }
+</style>
+</head>
+<body>
+
+<h2>ADMIN PANEL</h2>
+
+<h3>Deposit Requests</h3>
+<div id="deposits"></div>
+
+<h3>Withdraw Requests</h3>
+<div id="withdraws"></div>
+
+<script>
+async function loadData() {
+  let res = await fetch('/admin-data');
+  let data = await res.json();
+
+  let depDiv = document.getElementById("deposits");
+  depDiv.innerHTML = "";
+
+  data.deposits.forEach((d, i) => {
+    depDiv.innerHTML += `
+      <p>${d.mobile} - ₹${d.amount} - ${d.status}
+      <button onclick="approveDeposit(${i})">Approve</button></p>
+    `;
+  });
+
+  let withDiv = document.getElementById("withdraws");
+  withDiv.innerHTML = "";
+
+  data.withdraws.forEach((w, i) => {
+    withDiv.innerHTML += `
+      <p>${w.mobile} - ₹${w.amount} - ${w.status}
+      <button onclick="approveWithdraw(${i})">Approve</button></p>
+    `;
+  });
+}
+
+async function approveDeposit(i) {
+  await fetch('/approve-deposit/' + i);
+  loadData();
+}
+
+async function approveWithdraw(i) {
+  await fetch('/approve-withdraw/' + i);
+  loadData();
+}
+
+loadData();
+</script>
+
+</body>
+</html>

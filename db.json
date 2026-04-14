@@ -1,0 +1,24 @@
+{
+  "users": [
+    {
+      "mobile": "7260957661",
+      "password": "726095",
+      "balance": 0
+    },
+    {
+      "mobile": "7260957661P",
+      "password": "726095",
+      "balance": 0
+    }
+  ],
+  "deposits": [],
+  "withdraws": [
+    {
+      "mobile": "7260957661",
+      "amount": "",
+      "name": "",
+      "ifsc": "",
+      "status": "pending"
+    }
+  ]
+}

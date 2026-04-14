@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Deposit</title>
+<style>
+body { background:black; color:white; text-align:center; }
+input, button { padding:10px; margin:5px; }
+</style>
+</head>
+
+<body>
+
+<h2>💰 Deposit</h2>
+
+<p>UPI: <b id="upi">7260957661@ybl</b></p>
+<button onclick="copyUPI()">Copy UPI</button>
+
+<br><br>
+
+<input id="amount" placeholder="Enter Amount (Max 500)">
+<input id="utr" placeholder="Enter UTR">
+
+<br>
+
+<button onclick="deposit()">Submit</button>
+
+<h3>History</h3>
+<div id="history"></div>
+
+<script>
+
+let mobile = localStorage.getItem("mobile");
+
+// copy UPI
+function copyUPI(){
+  navigator.clipboard.writeText("7260957661@ybl");
+  alert("UPI Copied");
+}
+
+// deposit
+async function deposit(){
+  let amount = document.getElementById("amount").value;
+  let utr = document.getElementById("utr").value;
+
+  if(amount > 500){
+    alert("Max ₹500 allowed");
+    return;
+  }
+
+  await fetch('/deposit', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({mobile, amount, utr})
+  });
+
+  alert("Submitted");
+  loadHistory();
+}
+
+// load history
+async function loadHistory(){
+  let res = await fetch('/user-data?mobile=' + mobile);
+  let data = await res.json();
+
+  let html = "";
+
+  (data.deposits || []).forEach(d => {
+    if(d.mobile == mobile){
+      html += `<p>₹${d.amount} - ${d.status}</p>`;
+    }
+  });
+
+  document.getElementById("history").innerHTML = html;
+}
+
+loadHistory();
+
+</script>
+
+</body>
+</html>

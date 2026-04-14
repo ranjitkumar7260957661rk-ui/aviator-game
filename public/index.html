@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Aviator</title>
+
+<style>
+body { background:black; color:white; text-align:center; font-family:sans-serif; }
+input,button { padding:10px; margin:5px; }
+button { background:red; color:white; border:none; }
+#multi { font-size:40px; margin:20px; }
+#plane { font-size:30px; }
+</style>
+
+</head>
+<body>
+
+<h2>Login</h2>
+<input id="mobile" placeholder="Mobile"><br>
+<input id="pass" placeholder="Password"><br>
+<button onclick="login()">Login</button>
+
+<h1>✈️ Aviator</h1>
+
+<h2>Balance: ₹<span id="bal">0</span></h2>
+<h3 style="color:yellow">UPI: 7260957661@ybl</h3>
+
+<div id="plane">✈️</div>
+<div id="multi">1.00x</div>
+
+<input id="bet" placeholder="Bet"><br>
+<button onclick="betStart()">Start</button>
+<button onclick="cashout()">Cashout</button>
+
+<hr>
+
+<h3>Deposit</h3>
+<input id="amt" placeholder="Amount">
+<input id="utr" placeholder="UTR">
+<button onclick="deposit()">Submit</button>
+
+<h3>Withdraw</h3>
+<input id="wamt" placeholder="Amount">
+<button onclick="withdraw()">Submit</button>
+
+<script>
+
+let mobile = "";
+let balance = 0;
+let bet = 0;
+let multi = 1;
+let running = false;
+let canBet = false;
+
+// LOGIN
+function login(){
+  mobile = document.getElementById("mobile").value;
+
+  fetch("/login", {
+    method:"POST",
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+      mobile: mobile,
+      password: document.getElementById("pass").value
+    })
+  })
+  .then(res=>res.json())
+  .then(data=>{
+    balance = data.balance;
+    updateBal();
+    alert("Login Success");
+  });
+}
+
+// BALANCE
+function updateBal(){
+  document.getElementById("bal").innerText = balance;
+}
+
+// GAME LOOP
+setInterval(()=>{
+  startRound();
+}, 6000);
+
+function startRound(){
+  multi = 1;
+  canBet = true;
+  running = false;
+
+  document.getElementById("multi").innerText = "1.00x";
+
+  // 2 sec betting
+  setTimeout(()=>{
+    canBet = false;
+    runGame();
+  },2000);
+}
+
+function runGame(){
+  running = true;
+  let crash = (Math.random()*5+1).toFixed(2);
+
+  let int = setInterval(()=>{
+    multi += 0.05;
+    document.getElementById("multi").innerText = multi.toFixed(2)+"x";
+
+    if(multi >= crash){
+      clearInterval(int);
+      running = false;
+
+      setTimeout(()=>{
+        multi = 1;
+      },3000);
+    }
+
+  },100);
+}
+
+// BET
+function betStart(){
+  if(!canBet) return alert("Wait next round");
+
+  bet = parseInt(document.getElementById("bet").value);
+
+  if(balance >= bet){
+    balance -= bet;
+    updateBal();
+  }
+}
+
+// CASHOUT
+function cashout(){
+  if(running){
+    let win = bet * multi;
+    balance += win;
+    updateBal();
+    alert("Win ₹"+win.toFixed(0));
+  }
+}
+
+// DEPOSIT
+function deposit(){
+  fetch("/deposit",{
+    method:"POST",
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+      mobile: mobile,
+      amount: document.getElementById("amt").value,
+      utr: document.getElementById("utr").value
+    })
+  });
+
+  alert("Deposit Pending");
+}
+
+// WITHDRAW
+function withdraw(){
+  fetch("/withdraw",{
+    method:"POST",
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+      mobile: mobile,
+      amount: document.getElementById("wamt").value
+    })
+  });
+
+  alert("Withdraw Pending");
+}
+
+</script>
+
+</body>
+</html>

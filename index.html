@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Aviator Game</title>
+</head>
+<body style="text-align:center; font-family:sans-serif;">
+
+  <h1>✈️ Aviator Game</h1>
+
+  <h3>Balance: ₹<span id="bal">100</span></h3>
+
+  <input id="bet" placeholder="Enter Bet" />
+  <br><br>
+
+  <button onclick="startGame()">Start</button>
+  <button onclick="cashout()">Cashout</button>
+
+  <h2 id="multi">1.00x</h2>
+  <h2 id="status"></h2>
+
+<script>
+let balance = 100;
+let bet = 0;
+let multi = 1;
+let running = false;
+
+function startGame() {
+  bet = Number(document.getElementById("bet").value);
+
+  if (bet > balance || bet <= 0) {
+    alert("Invalid Bet");
+    return;
+  }
+
+  balance -= bet;
+  document.getElementById("bal").innerText = balance;
+
+  multi = 1;
+  running = true;
+  document.getElementById("status").innerText = "Running...";
+
+  let crash = Math.random() * 5 + 1;
+
+  let interval = setInterval(() => {
+    if (!running) {
+      clearInterval(interval);
+      return;
+    }
+
+    multi += 0.1;
+    document.getElementById("multi").innerText = multi.toFixed(2) + "x";
+
+    if (multi >= crash) {
+      document.getElementById("status").innerText = "💥 Crashed!";
+      running = false;
+      clearInterval(interval);
+    }
+
+  }, 200);
+}
+
+function cashout() {
+  if (!running) return;
+
+  let win = bet * multi;
+  balance += win;
+
+  document.getElementById("bal").innerText = balance;
+  document.getElementById("status").innerText = "✅ Cashed Out: ₹" + win.toFixed(2);
+
+  running = false;
+}
+</script>
+
+</body>
+</html>

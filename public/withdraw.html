@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Withdraw</title>
+<style>
+body { background:black; color:white; text-align:center; }
+input, button { padding:10px; margin:5px; }
+</style>
+</head>
+
+<body>
+
+<h2>💸 Withdraw</h2>
+
+<input id="name" placeholder="Name">
+<input id="account" placeholder="Account Number">
+<input id="ifsc" placeholder="IFSC Code">
+<input id="amount" placeholder="Amount (Max 1000)">
+
+<br>
+
+<button onclick="withdraw()">Submit</button>
+
+<h3>History</h3>
+<div id="history"></div>
+
+<script>
+
+let mobile = localStorage.getItem("mobile");
+
+// withdraw
+async function withdraw(){
+  let name = document.getElementById("name").value;
+  let account = document.getElementById("account").value;
+  let ifsc = document.getElementById("ifsc").value;
+  let amount = document.getElementById("amount").value;
+
+  if(amount > 1000){
+    alert("Max ₹1000 allowed");
+    return;
+  }
+
+  await fetch('/withdraw', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({mobile, amount, name, account, ifsc})
+  });
+
+  alert("Withdraw Request Sent");
+  loadHistory();
+}
+
+// load history
+async function loadHistory(){
+  let res = await fetch('/user-data?mobile=' + mobile);
+  let data = await res.json();
+
+  let html = "";
+
+  (data.withdraws || []).forEach(w => {
+    if(w.mobile == mobile){
+      html += `<p>₹${w.amount} - ${w.status}</p>`;
+    }
+  });
+
+  document.getElementById("history").innerHTML = html;
+}
+
+loadHistory();
+
+</script>
+
+</body>
+</html>

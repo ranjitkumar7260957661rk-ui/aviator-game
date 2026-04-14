@@ -1,0 +1,21 @@
+<h2>Login</h2>
+<input id="m" placeholder="Mobile"><br>
+<input id="p" placeholder="Password"><br>
+<button onclick="go()">Login</button>
+
+<script>
+function go(){
+fetch("/login",{
+method:"POST",
+headers:{'Content-Type':'application/json'},
+body:JSON.stringify({
+mobile:m.value,
+password:p.value
+})
+}).then(r=>r.json())
+.then(d=>{
+localStorage.setItem("mobile",d.mobile);
+location="game.html";
+});
+}
+</script>
