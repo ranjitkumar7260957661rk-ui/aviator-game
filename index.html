@@ -1,130 +1,174 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Aviator Game</title>
+<title>Aviator Full Game</title>
+
 <style>
 body { background:#111; color:#fff; text-align:center; font-family:sans-serif; }
-input, button { padding:10px; margin:5px; }
-#game { display:none; }
-#plane { font-size:40px; transition: all 0.2s linear; }
+
+input, button {
+  padding:10px; margin:5px;
+}
+
+#game, #depositPage, #withdrawPage { display:none; }
+
+#plane {
+  font-size:40px;
+  position:relative;
+  left:0;
+  transition: all 0.1s linear;
+}
 </style>
 </head>
 
 <body>
 
-<!-- LOGIN -->
+<h2 id="title">Login</h2>
+
 <div id="login">
-<h2>Login</h2>
-<input id="mobile" placeholder="Mobile"><br>
-<input id="pass" type="password" placeholder="Password"><br>
-<button onclick="login()">Login</button>
+  <input id="mobile" placeholder="Mobile"><br>
+  <input id="pass" placeholder="Password"><br>
+  <button onclick="login()">Login</button>
 </div>
 
-<!-- GAME -->
 <div id="game">
-<h1>✈️ Aviator</h1>
-<h3>Balance: ₹<span id="bal">0</span></h3>
+  <h3>Balance: ₹<span id="bal">0</span></h3>
 
-<input id="bet" placeholder="Enter Bet"><br>
+  <button onclick="showDeposit()">Deposit</button>
+  <button onclick="showWithdraw()">Withdraw</button>
 
-<button onclick="startGame()">Start</button>
-<button onclick="cashout()">Cashout</button>
+  <h1 id="plane">✈️</h1>
+  <h1 id="multi">1.00x</h1>
 
-<h2 id="multi">1.00x</h2>
-<div id="plane">✈️</div>
+  <input id="bet" placeholder="Bet"><br>
+  <button onclick="start()">Start</button>
+  <button onclick="cashout()">Cashout</button>
 </div>
 
-<script>
+<div id="depositPage">
+  <h3>UPI: 7260957661@ybl</h3>
+  <p>Max ₹500</p>
+  <input id="depAmt" placeholder="Amount">
+  <input id="utr" placeholder="UTR">
+  <button onclick="deposit()">Submit</button>
+  <button onclick="back()">Back</button>
+</div>
+
+<div id="withdrawPage">
+  <input id="bank" placeholder="Bank Name">
+  <input id="acc" placeholder="Account No">
+  <input id="ifsc" placeholder="IFSC">
+  <input id="wAmt" placeholder="Amount (max 500)">
+  <button onclick="withdraw()">Submit</button>
+  <button onclick="back()">Back</button>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-app.js";
+import { getDatabase, ref, set, get, child } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDCYEveGXPy1nORiyyeyIjsbfcqEy4iaVg",
+  authDomain: "avaitior-game.firebaseapp.com",
+  databaseURL: "https://avaitior-game-default-rtdb.firebaseio.com",
+  projectId: "avaitior-game",
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+let user = "";
 let balance = 0;
 let multi = 1;
+let interval;
 let running = false;
-let user = "";
 
-// LOGIN SYSTEM
-function login() {
-  let m = document.getElementById("mobile").value;
-  let p = document.getElementById("pass").value;
+window.login = async function() {
+  user = document.getElementById("mobile").value;
+  let pass = document.getElementById("pass").value;
 
-  if(m.length < 5 || p.length < 3){
-    alert("Enter valid details");
-    return;
-  }
+  if(!user || !pass) return alert("Fill details");
 
-  user = m;
-
-  let saved = localStorage.getItem("user_"+m);
-  if(saved){
-    balance = Number(saved);
+  const snapshot = await get(child(ref(db), "users/"+user));
+  
+  if(snapshot.exists()){
+    balance = snapshot.val().balance;
   } else {
-    balance = 100; // first time bonus
-    localStorage.setItem("user_"+m, balance);
+    balance = 100;
+    await set(ref(db,"users/"+user), {balance:100});
   }
 
   document.getElementById("bal").innerText = balance;
-  document.getElementById("login").style.display = "none";
-  document.getElementById("game").style.display = "block";
+  document.getElementById("login").style.display="none";
+  document.getElementById("game").style.display="block";
 }
 
-// GAME START
-function startGame() {
+window.start = function(){
   let bet = Number(document.getElementById("bet").value);
-
-  if (!bet || bet <= 0 || bet > balance) {
-    alert("Invalid Bet");
-    return;
-  }
+  if(bet<=0 || bet>balance) return alert("Invalid Bet");
 
   balance -= bet;
-  updateBalance();
+  updateBal();
 
   multi = 1;
   running = true;
+  let pos = 0;
 
-  let crash = Math.random() * 5 + 1;
-
-  let plane = document.getElementById("plane");
-  plane.style.transform = "translateX(0px)";
-
-  let interval = setInterval(() => {
-    if (!running) {
-      clearInterval(interval);
-      return;
-    }
-
+  interval = setInterval(()=>{
     multi += 0.05;
-    document.getElementById("multi").innerText = multi.toFixed(2) + "x";
+    pos += 5;
 
-    // plane move
-    let move = multi * 20;
-    plane.style.transform = "translateX(" + move + "px)";
+    document.getElementById("multi").innerText = multi.toFixed(2)+"x";
+    document.getElementById("plane").style.left = pos+"px";
 
-    if (multi >= crash) {
-      document.getElementById("multi").innerText = "💥 Crashed!";
-      running = false;
+    if(Math.random()<0.03){
       clearInterval(interval);
+      running=false;
+      alert("Crashed at "+multi.toFixed(2));
     }
 
-  }, 200);
+  },100);
 }
 
-// CASHOUT
-function cashout() {
-  if (!running) return;
+window.cashout = function(){
+  if(!running) return;
+  running=false;
+  clearInterval(interval);
 
-  let bet = Number(document.getElementById("bet").value);
-  let win = bet * multi;
-
+  let win = multi * Number(document.getElementById("bet").value);
   balance += win;
-  updateBalance();
 
-  running = false;
-  document.getElementById("multi").innerText = "✅ Cashed: ₹" + win.toFixed(2);
+  updateBal();
+  alert("Won ₹"+win.toFixed(0));
 }
 
-// SAVE BALANCE
-function updateBalance(){
+function updateBal(){
   document.getElementById("bal").innerText = balance;
-  localStorage.setItem("user_"+user, balance);
+  set(ref(db,"users/"+user+"/balance"), balance);
+}
+
+window.showDeposit = ()=> {
+  document.getElementById("game").style.display="none";
+  document.getElementById("depositPage").style.display="block";
+}
+
+window.showWithdraw = ()=> {
+  document.getElementById("game").style.display="none";
+  document.getElementById("withdrawPage").style.display="block";
+}
+
+window.back = ()=> {
+  document.getElementById("depositPage").style.display="none";
+  document.getElementById("withdrawPage").style.display="none";
+  document.getElementById("game").style.display="block";
+}
+
+window.deposit = ()=>{
+  alert("Request Sent (Manual Approve)");
+}
+
+window.withdraw = ()=>{
+  alert("Withdraw Request Sent");
 }
 </script>
 
