@@ -1,19 +1,21 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Aviator Full System</title>
-  <style>
-    body { font-family: Arial; background:#111; color:#fff; text-align:center; }
-    input, button { padding:10px; margin:5px; }
-    .page { display:none; }
-  </style>
-</head>
+<title>Aviator Control</title>
 
+<style>
+body { background:#111; color:#fff; text-align:center; font-family:sans-serif; }
+input, button { padding:10px; margin:5px; border:none; border-radius:5px; }
+button { background:#00c853; color:#fff; }
+.page { display:none; }
+</style>
+
+</head>
 <body>
 
 <!-- LOGIN -->
 <div id="login" class="page" style="display:block;">
-  <h2>Login</h2>
+  <h2>Aviator ✈️</h2>
   <input id="mobile" placeholder="Mobile"><br>
   <input id="pass" placeholder="Password" type="password"><br>
   <button onclick="login()">Login</button>
@@ -22,6 +24,7 @@
 <!-- GAME -->
 <div id="game" class="page">
   <h3>Balance: ₹<span id="bal">0</span></h3>
+
   <h1 id="multi">1.00x</h1>
 
   <input id="bet" placeholder="Bet"><br>
@@ -31,60 +34,47 @@
   <button onclick="showPage('deposit')">Deposit</button>
   <button onclick="showPage('withdraw')">Withdraw</button>
 
-  <h4 id="status"></h4>
+  <h3 id="status"></h3>
 </div>
 
 <!-- DEPOSIT -->
 <div id="deposit" class="page">
-  <h2>Deposit</h2>
-  <p>UPI: 7260957661@ybl</p>
-  <p>Max Deposit: 500</p>
+  <h3>Deposit</h3>
   <input id="damount" placeholder="Amount"><br>
-  <input id="utr" placeholder="UTR Number"><br>
   <button onclick="deposit()">Submit</button><br>
   <button onclick="back()">Back</button>
 </div>
 
 <!-- WITHDRAW -->
 <div id="withdraw" class="page">
-  <h2>Withdraw</h2>
-  <p>Max Withdraw: 500</p>
-  <input id="name" placeholder="Name"><br>
-  <input id="bank" placeholder="Bank Name"><br>
-  <input id="acc" placeholder="Account Number"><br>
-  <input id="ifsc" placeholder="IFSC"><br>
+  <h3>Withdraw</h3>
   <input id="wamount" placeholder="Amount"><br>
   <button onclick="withdraw()">Submit</button><br>
   <button onclick="back()">Back</button>
 </div>
 
-<!-- ADMIN -->
-<div id="admin" class="page">
-  <h2>Admin Panel</h2>
-  <div id="adminData"></div>
-</div>
-
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-app.js";
-import { getDatabase, ref, set, get, child, update, push } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-database.js";
 
-const firebaseConfig = {
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-app.js";
+import { getDatabase, ref, set, get, update, push } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-database.js";
+
+const app = initializeApp({
   apiKey: "AIzaSyDCYEveGXPy1nORiyyeyIjsbfcqEy4iaVg",
   authDomain: "avaitior-game.firebaseapp.com",
   databaseURL: "https://avaitior-game-default-rtdb.firebaseio.com",
-  projectId: "avaitior-game",
-  storageBucket: "avaitior-game.firebasestorage.app",
-  messagingSenderId: "945770227622",
-  appId: "1:945770227622:web:927b25e4e9b05210f79167"
-};
+  projectId: "avaitior-game"
+});
 
-const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-let currentUser = "";
+let user = "";
 let balance = 0;
+let running = false;
+let multi = 1;
+let crash = 2;
+let betAmt = 0;
 
-// PAGE SWITCH
+// PAGE
 window.showPage = (p)=>{
   document.querySelectorAll('.page').forEach(x=>x.style.display='none');
   document.getElementById(p).style.display='block';
@@ -92,99 +82,110 @@ window.showPage = (p)=>{
 window.back = ()=> showPage('game');
 
 // LOGIN
-window.login = ()=>{
-  let m = mobile.value;
-  let p = pass.value;
-  currentUser = m;
+window.login = async ()=>{
+  user = mobile.value;
 
-  get(child(ref(db), 'users/'+m)).then(snap=>{
-    if(snap.exists()){
-      let data = snap.val();
-      if(data.password === p){
-        balance = data.balance;
-        bal.innerText = balance;
-        showPage('game');
-      } else alert("Wrong password");
-    } else {
-      set(ref(db,'users/'+m),{password:p,balance:100});
-      balance = 100;
-      bal.innerText = balance;
-      showPage('game');
-    }
-  });
+  let snap = await get(ref(db,"users/"+user));
+
+  if(!snap.exists()){
+    balance = 100;
+    await set(ref(db,"users/"+user),{balance});
+  } else {
+    balance = snap.val().balance || 0;
+  }
+
+  bal.innerText = balance;
+  showPage("game");
 };
 
-// GAME
-let running=false, multi=1, crash;
+// GAME START
+window.startGame = async ()=>{
+  if(running) return;
 
-window.startGame = ()=>{
-  let bet = Number(document.getElementById("bet").value);
-  if(bet<=0 || bet>balance) return alert("Invalid");
+  betAmt = Number(bet.value);
+  if(betAmt<=0 || betAmt>balance) return alert("Invalid Bet");
 
-  balance -= bet;
+  // 🔥 CONTROL FETCH
+  let snap = await get(ref(db,"control"));
+  let data = snap.val() || {};
+
+  // demo lock
+  if(data.demoLock){
+    return alert("Demo Disabled");
+  }
+
+  // crash control
+  crash = data.crashPoint || (Math.random()*5+1);
+
+  balance -= betAmt;
   bal.innerText = balance;
 
-  multi=1;
-  crash = Math.random()*5+1;
-  running=true;
+  running = true;
+  multi = 1;
 
   let int = setInterval(()=>{
     if(!running) return;
 
-    multi+=0.1;
+    multi += 0.1;
     multiEl.innerText = multi.toFixed(2)+"x";
 
-    if(multi>=crash){
-      running=false;
+    if(multi >= crash){
+      running = false;
       clearInterval(int);
-      status.innerText="Crashed!";
-      saveBalance();
+      status.innerText = "💥 Crashed";
+      save();
     }
+
   },200);
 };
 
+// CASHOUT
 window.cashout = ()=>{
-  if(running){
-    let bet = Number(bet.value);
-    let win = bet*multi;
-    balance += win;
-    bal.innerText = Math.floor(balance);
-    running=false;
-    saveBalance();
-  }
+  if(!running) return;
+
+  let win = betAmt * multi;
+  balance += Math.floor(win);
+
+  bal.innerText = balance;
+  running = false;
+  status.innerText = "✅ Cashed Out";
+
+  save();
 };
 
-// SAVE BALANCE
-function saveBalance(){
-  update(ref(db,'users/'+currentUser),{balance:balance});
+// SAVE
+function save(){
+  update(ref(db,"users/"+user),{balance});
 }
 
 // DEPOSIT
 window.deposit = ()=>{
   let amt = damount.value;
-  let u = utr.value;
 
-  push(ref(db,'deposits'),{
-    user: currentUser,
-    amount: amt,
-    utr: u,
-    status: "pending"
+  push(ref(db,"deposits"),{
+    user, amount:amt, status:"pending"
   });
 
-  alert("Deposit request sent");
+  alert("Deposit Request Sent");
 };
 
 // WITHDRAW
-window.withdraw = ()=>{
+window.withdraw = async ()=>{
   let amt = wamount.value;
 
-  push(ref(db,'withdraws'),{
-    user: currentUser,
-    amount: amt,
-    status: "pending"
+  let snap = await get(ref(db,"control"));
+  let data = snap.val() || {};
+
+  // withdraw lock
+  if(data.withdrawLock){
+    return alert("Withdraw Disabled");
+  }
+
+  push(ref(db,"withdraw"),{
+    user, amount:amt, status:"pending"
   });
 
-  alert("Withdraw request sent");
+  alert("Withdraw Request Sent");
 };
 
 </script>
