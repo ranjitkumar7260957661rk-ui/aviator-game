@@ -1,25 +1,42 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Aviator</title>
-  <style>
-    body { background:#111; color:#fff; text-align:center; font-family:sans-serif; }
-    input, button { padding:10px; margin:5px; }
-    #plane { font-size:40px; margin:20px; }
-  </style>
+<title>Aviator</title>
+
+<style>
+body { background:#111; color:#fff; text-align:center; font-family:sans-serif; }
+
+input, button {
+  padding:10px;
+  margin:5px;
+  border:none;
+  border-radius:5px;
+}
+
+button { background:#333; color:#fff; }
+
+#plane {
+  font-size:50px;
+  margin:20px;
+  transition: transform 0.1s linear;
+}
+</style>
+
 </head>
 <body>
 
-<h2>Aviator</h2>
+<h2>Aviator ✈️</h2>
 
+<!-- LOGIN -->
 <div id="login">
   <input id="mobile" placeholder="Mobile"><br>
   <input id="pass" placeholder="Password"><br>
   <button onclick="login()">Login</button>
 </div>
 
+<!-- GAME -->
 <div id="game" style="display:none;">
-  <h3>Balance: ₹<span id="bal">0</span></h3>
+  <h3>Balance: ₹<span id="bal">0.00</span></h3>
 
   <button onclick="showDeposit()">Deposit</button>
   <button onclick="showWithdraw()">Withdraw</button>
@@ -27,33 +44,25 @@
   <div id="plane">✈️</div>
   <h1 id="multi">1.00x</h1>
 
-  <input id="bet" placeholder="Bet">
-  <br>
-  <button onclick="bet()">Bet</button>
+  <input id="bet" placeholder="Bet Amount"><br>
+  <button onclick="startBet()">Start</button>
   <button onclick="cashout()">Cashout</button>
 </div>
-
-<!-- Deposit -->
-<div id="deposit" style="display:none;">
-  <h3>Deposit</h3>
-  <p>UPI: 7260957661@ybl</p>
-  <input id="depAmt" placeholder="Amount (max 500)">
-  <input id="utr" placeholder="UTR">
-  <button onclick="sendDeposit()">Submit</button>
-</div>
-
-<!-- Withdraw -->
+<!-- WITHDRAW -->
 <div id="withdraw" style="display:none;">
   <h3>Withdraw</h3>
+  <p>Max Withdraw: ₹500</p>
   <input id="name" placeholder="Name">
-  <input id="acc" placeholder="Account">
+  <input id="acc" placeholder="Account Number">
   <input id="ifsc" placeholder="IFSC">
-  <input id="withAmt" placeholder="Amount (max 500)">
+  <input id="withAmt" placeholder="Amount">
   <button onclick="sendWithdraw()">Submit</button>
 </div>
+
 <script type="module">
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-app.js";
-import { getDatabase, ref, set, get, update, push, onValue } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-database.js";
+import { getDatabase, ref, set, get, update, push } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-database.js";
 
 const app = initializeApp({
   apiKey: "AIzaSyDCYEveGXPy1nORiyyeyIjsbfcqEy4iaVg",
@@ -73,65 +82,84 @@ let betAmt = 0;
 // LOGIN
 window.login = async function() {
   user = document.getElementById("mobile").value;
+
   let snap = await get(ref(db, "users/" + user));
 
   if (!snap.exists()) {
-    await set(ref(db, "users/" + user), { balance: 100 });
     balance = 100;
+    await set(ref(db, "users/" + user), { balance: balance });
   } else {
-    balance = snap.val().balance;
+    balance = snap.val().balance || 0;
   }
 
-  document.getElementById("bal").innerText = balance.toFixed(2);
+balance = parseFloat(balance).toFixed(2);
+
+  document.getElementById("bal").innerText = balance;
+
   document.getElementById("login").style.display="none";
   document.getElementById("game").style.display="block";
 }
 
-// BET
-window.bet = function() {
+// START BET
+window.startBet = function() {
   if (running) return;
-  betAmt = parseInt(document.getElementById("bet").value);
 
-  if (!betAmt || betAmt > balance) {
+  betAmt = parseFloat(document.getElementById("bet").value);
+
+  if (!betAmt || betAmt <= 0 || betAmt > balance) {
     alert("Invalid Bet");
     return;
   }
 
   balance -= betAmt;
+  balance = parseFloat(balance.toFixed(2));
+
   update(ref(db, "users/" + user), { balance });
+
+  document.getElementById("bal").innerText = balance;
 
   startGame();
 }
-// GAME LOOP
+
+// GAME
 function startGame() {
   running = true;
   multiplier = 1;
 
-  let crash = Math.random()*5 + 1;
+  let crash = Math.random() * 5 + 1;
+
+  let plane = document.getElementById("plane");
 
   let interval = setInterval(()=>{
     multiplier += 0.05;
-    document.getElementById("multi").innerText = multiplier.toFixed(2)+"x";
+
+    document.getElementById("multi").innerText = multiplier.toFixed(2) + "x";
+
+    plane.style.transform = "translateY(-" + (multiplier*10) + "px)";
 
     if (multiplier >= crash) {
       clearInterval(interval);
-      running=false;
-      document.getElementById("plane").innerText="💥";
+      running = false;
+      plane.innerText = "💥";
     }
+
   },100);
 }
 
-// CASHOUT
+  // CASHOUT
 window.cashout = function() {
   if (!running) return;
 
   let win = betAmt * multiplier;
+
   balance += win;
+  balance = parseFloat(balance.toFixed(2));
 
   update(ref(db, "users/" + user), { balance });
 
-  document.getElementById("bal").innerText = balance.toFixed(2);
-  running=false;
+  document.getElementById("bal").innerText = balance;
+
+  running = false;
 }
 
 // DEPOSIT
@@ -139,10 +167,11 @@ window.showDeposit = ()=> document.getElementById("deposit").style.display="bloc
 
 window.sendDeposit = ()=>{
   let amt = document.getElementById("depAmt").value;
-  let utr = document.getElementById("utr").value;
+
+  if (amt > 500) return alert("Max 500");
 
   push(ref(db,"deposit"), {
-    user, amt, utr, status:"pending"
+    user, amt, status:"pending"
   });
 
   alert("Deposit request sent");
@@ -154,12 +183,15 @@ window.showWithdraw = ()=> document.getElementById("withdraw").style.display="bl
 window.sendWithdraw = ()=>{
   let amt = document.getElementById("withAmt").value;
 
+  if (amt > 500) return alert("Max 500");
+
   push(ref(db,"withdraw"), {
     user, amt, status:"pending"
   });
 
   alert("Withdraw request sent");
 }
+
 </script>
 
 </body>
@@ -193,5 +225,11 @@ window.sendWithdraw = ()=>{
 
 
 
-  
+
+
+
+
+
+
+
   
