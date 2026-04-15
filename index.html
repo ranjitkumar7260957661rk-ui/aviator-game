@@ -11,6 +11,7 @@ input, button {
   margin:5px;
   border:none;
   border-radius:5px;
+  width:200px;
 }
 
 button {
@@ -58,8 +59,8 @@ button {
   <h3>Deposit</h3>
   <p>UPI: 7260957661@ybl</p>
   <p>Max ₹500</p>
-  <input id="depAmt" placeholder="Amount">
-  <button onclick="sendDeposit()">Submit</button>
+  <input id="depAmt" placeholder="Amount"><br>
+  <button onclick="sendDeposit()">Submit</button><br>
   <button onclick="backGame()">Back</button>
 </div>
 
@@ -71,7 +72,7 @@ button {
   <input id="acc" placeholder="Account Number"><br>
   <input id="ifsc" placeholder="IFSC"><br>
   <input id="withAmt" placeholder="Amount"><br>
-  <button onclick="sendWithdraw()">Submit</button>
+  <button onclick="sendWithdraw()">Submit</button><br>
   <button onclick="backGame()">Back</button>
 </div>
 
@@ -80,25 +81,32 @@ button {
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-app.js";
 import { getDatabase, ref, set, get, update, push } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-database.js";
 
+/* 🔴 APNA FIREBASE DATA YAHAN DAAL */
 const app = initializeApp({
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT.firebaseapp.com",
-  databaseURL: "YOUR_DB_URL",
-  projectId: "YOUR_PROJECT"
+  apiKey: "PASTE_API_KEY",
+  authDomain: "PASTE.firebaseapp.com",
+  databaseURL: "https://PASTE-default-rtdb.firebaseio.com",
+  projectId: "PASTE"
 });
 
 const db = getDatabase(app);
 
 let user = "";
-let balance = 0;   // real money
-let bonus = 0;     // free ₹100
+let balance = 0;
+let bonus = 0;
 let multiplier = 1;
 let running = false;
 let betAmt = 0;
 
 // LOGIN
 window.login = async function() {
+
   user = document.getElementById("mobile").value;
+
+  if(!user){
+    alert("Enter Mobile");
+    return;
+  }
 
   let snap = await get(ref(db, "users/" + user));
 
@@ -123,10 +131,9 @@ window.login = async function() {
   document.getElementById("game").style.display="block";
 }
 
-// SHOW BALANCE
+// BALANCE SHOW
 function updateBalance(){
-  let total = balance + bonus;
-  document.getElementById("bal").innerText = total.toFixed(2);
+  document.getElementById("bal").innerText = (balance + bonus).toFixed(2);
 }
 
 // START BET
@@ -141,7 +148,6 @@ window.startBet = function() {
     return;
   }
 
-  // first use bonus
   if (bonus >= betAmt) {
     bonus -= betAmt;
   } else {
@@ -167,6 +173,7 @@ function startGame() {
   plane.innerText = "✈️";
 
   let interval = setInterval(()=>{
+
     multiplier += 0.05;
 
     document.getElementById("multi").innerText = multiplier.toFixed(2) + "x";
@@ -187,88 +194,4 @@ function startGame() {
 }
 
 // CASHOUT
-window.cashout = function() {
-
-  if (!running) return;
-
-  let win = betAmt * multiplier;
-
-  balance += win; // only real balance increase
-
-  saveUser();
-  updateBalance();
-
-  running = false;
-}
-
-// SAVE USER
-function saveUser(){
-  update(ref(db, "users/" + user), {
-    balance,
-    bonus
-  });
-}
-
-// UI
-window.showDeposit = ()=>{
-  document.getElementById("game").style.display="none";
-  document.getElementById("deposit").style.display="block";
-}
-
-window.showWithdraw = ()=>{
-  document.getElementById("game").style.display="none";
-  document.getElementById("withdraw").style.display="block";
-}
-
-window.backGame = ()=>{
-  document.getElementById("deposit").style.display="none";
-  document.getElementById("withdraw").style.display="none";
-  document.getElementById("game").style.display="block";
-}
-
-// DEPOSIT
-window.sendDeposit = ()=>{
-  let amt = Number(document.getElementById("depAmt").value);
-
-  if (!amt || amt <=0 || amt > 500) {
-    alert("Max ₹500");
-    return;
-  }
-
-  push(ref(db,"deposit"), { user, amt, status:"pending" });
-
-  alert("Deposit Request Sent");
-}
-
-// WITHDRAW
-window.sendWithdraw = ()=>{
-
-  let amt = Number(document.getElementById("withAmt").value);
-
-  if (!amt || amt <=0 || amt > 500) {
-    alert("Max ₹500");
-    return;
-  }
-
-  if (amt > balance) {
-    alert("Only real balance withdraw allowed");
-    return;
-  }
-
-  push(ref(db,"withdraw"), {
-    user,
-    amt,
-    name: document.getElementById("name").value,
-    acc: document.getElementById("acc").value,
-    ifsc: document.getElementById("ifsc").value,
-    status:"pending"
-  });
-
-  alert("Withdraw Request Sent");
-}
-
-</script>
-
-</body>
-</html>
-
+window.cash
