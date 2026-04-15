@@ -36,7 +36,7 @@ button { background:#333; color:#fff; }
 
 <!-- GAME -->
 <div id="game" style="display:none;">
-  <h3>Balance: ₹<span id="bal">0.00</span></h3>
+  <h3>Balance: ₹<span id="bal">0</span></h3>
 
   <button onclick="showDeposit()">Deposit</button>
   <button onclick="showWithdraw()">Withdraw</button>
@@ -48,6 +48,16 @@ button { background:#333; color:#fff; }
   <button onclick="startBet()">Start</button>
   <button onclick="cashout()">Cashout</button>
 </div>
+
+<!-- DEPOSIT -->
+<div id="deposit" style="display:none;">
+  <h3>Deposit</h3>
+  <p>UPI: 7260957661@ybl</p>
+  <p>Max Deposit: ₹500</p>
+  <input id="depAmt" placeholder="Amount">
+  <button onclick="sendDeposit()">Submit</button>
+</div>
+
 <!-- WITHDRAW -->
 <div id="withdraw" style="display:none;">
   <h3>Withdraw</h3>
@@ -72,7 +82,6 @@ const app = initializeApp({
 });
 
 const db = getDatabase(app);
-
 let user = "";
 let balance = 0;
 let multiplier = 1;
@@ -87,12 +96,10 @@ window.login = async function() {
 
   if (!snap.exists()) {
     balance = 100;
-    await set(ref(db, "users/" + user), { balance: balance });
+    await set(ref(db, "users/" + user), { balance });
   } else {
-    balance = snap.val().balance || 0;
+    balance = Number(snap.val().balance || 0);
   }
-
-balance = parseFloat(balance).toFixed(2);
 
   document.getElementById("bal").innerText = balance;
 
@@ -104,7 +111,7 @@ balance = parseFloat(balance).toFixed(2);
 window.startBet = function() {
   if (running) return;
 
-  betAmt = parseFloat(document.getElementById("bet").value);
+  betAmt = Number(document.getElementById("bet").value);
 
   if (!betAmt || betAmt <= 0 || betAmt > balance) {
     alert("Invalid Bet");
@@ -112,7 +119,7 @@ window.startBet = function() {
   }
 
   balance -= betAmt;
-  balance = parseFloat(balance.toFixed(2));
+  balance = Math.floor(balance);
 
   update(ref(db, "users/" + user), { balance });
 
@@ -129,31 +136,36 @@ function startGame() {
   let crash = Math.random() * 5 + 1;
 
   let plane = document.getElementById("plane");
+  plane.innerText = "✈️";
 
   let interval = setInterval(()=>{
     multiplier += 0.05;
 
     document.getElementById("multi").innerText = multiplier.toFixed(2) + "x";
-
     plane.style.transform = "translateY(-" + (multiplier*10) + "px)";
 
     if (multiplier >= crash) {
       clearInterval(interval);
       running = false;
       plane.innerText = "💥";
+
+      setTimeout(()=>{
+        plane.style.transform = "translateY(0px)";
+        document.getElementById("multi").innerText = "1.00x";
+      },2000);
     }
 
   },100);
 }
 
-  // CASHOUT
+// CASHOUT
 window.cashout = function() {
   if (!running) return;
 
   let win = betAmt * multiplier;
 
   balance += win;
-  balance = parseFloat(balance.toFixed(2));
+  balance = Math.floor(balance);
 
   update(ref(db, "users/" + user), { balance });
 
@@ -166,13 +178,11 @@ window.cashout = function() {
 window.showDeposit = ()=> document.getElementById("deposit").style.display="block";
 
 window.sendDeposit = ()=>{
-  let amt = document.getElementById("depAmt").value;
+  let amt = Number(document.getElementById("depAmt").value);
 
   if (amt > 500) return alert("Max 500");
 
-  push(ref(db,"deposit"), {
-    user, amt, status:"pending"
-  });
+  push(ref(db,"deposit"), { user, amt, status:"pending" });
 
   alert("Deposit request sent");
 }
@@ -181,13 +191,14 @@ window.sendDeposit = ()=>{
 window.showWithdraw = ()=> document.getElementById("withdraw").style.display="block";
 
 window.sendWithdraw = ()=>{
-  let amt = document.getElementById("withAmt").value;
+  let amt = Number(document.getElementById("withAmt").value);
+  let name = document.getElementById("name").value;
+  let acc = document.getElementById("acc").value;
+  let ifsc = document.getElementById("ifsc").value;
 
   if (amt > 500) return alert("Max 500");
 
-  push(ref(db,"withdraw"), {
-    user, amt, status:"pending"
-  });
+  push(ref(db,"withdraw"), { user, amt, name, acc, ifsc, status:"pending" });
 
   alert("Withdraw request sent");
 }
@@ -196,38 +207,6 @@ window.sendWithdraw = ()=>{
 
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
