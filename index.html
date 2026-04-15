@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -5,12 +6,15 @@
 
 <style>
 body { background:#111; color:#fff; text-align:center; font-family:sans-serif; }
+input, button { padding:10px; margin:5px; }
 
-input, button {
-  padding:10px; margin:5px;
+.page { display:none; }
+
+.topbar {
+  display:flex;
+  justify-content:space-between;
+  padding:10px;
 }
-
-#game, #depositPage, #withdrawPage { display:none; }
 
 #plane {
   font-size:40px;
@@ -22,170 +26,231 @@ input, button {
 
 <body>
 
-<h2>Login</h2>
+<h2>Aviator</h2>
 
-<div id="login">
-  <input id="mobile" placeholder="Mobile"><br>
-  <input id="pass" placeholder="Password"><br>
-  <button onclick="login()">Login</button>
+<!-- LOGIN -->
+<div id="login" class="page" style="display:block;">
+<input id="mobile" placeholder="Mobile"><br>
+<input id="pass" placeholder="Password"><br>
+<button onclick="login()">Login</button>
 </div>
 
-<div id="game">
-  <h3>Balance: ₹<span id="bal">0</span></h3>
+<!-- GAME -->
+<div id="game" class="page">
 
-  <button onclick="showDeposit()">Deposit</button>
-  <button onclick="showWithdraw()">Withdraw</button>
-
-  <h1 id="plane">✈️</h1>
-  <h1 id="multi">1.00x</h1>
-
-  <input id="bet" placeholder="Bet"><br>
-  <button onclick="cashout()">Cashout</button>
+<div class="topbar">
+<button onclick="showPage('deposit')">Deposit</button>
+<button onclick="showPage('withdraw')">Withdraw</button>
 </div>
 
-<div id="depositPage">
-  <h3>UPI: 7260957661@ybl</h3>
-  <p>Max ₹500</p>
-  <input id="depAmt" placeholder="Amount">
-  <input id="utr" placeholder="UTR">
-  <button onclick="deposit()">Submit</button>
-  <button onclick="back()">Back</button>
+<h3>Balance: ₹<span id="bal">0</span></h3>
+
+<h1 id="plane">✈️</h1>
+<h1 id="multi">1.00x</h1>
+
+<input id="bet" placeholder="Bet"><br>
+<button onclick="cashout()">Cashout</button>
+
 </div>
 
-<div id="withdrawPage">
-  <input id="bank" placeholder="Bank Name">
-  <input id="acc" placeholder="Account No">
-  <input id="ifsc" placeholder="IFSC">
-  <input id="wAmt" placeholder="Amount (max 500)">
-  <button onclick="withdraw()">Submit</button>
-  <button onclick="back()">Back</button>
+<!-- DEPOSIT -->
+<div id="deposit" class="page">
+<h3>UPI: 7260957661@ybl</h3>
+<p>Maximum Deposit: ₹500</p>
+
+<input id="depAmt" placeholder="Amount"><br>
+<input id="utr" placeholder="UTR Number"><br>
+<button onclick="deposit()">Submit</button><br>
+<button onclick="showPage('game')">Back</button>
 </div>
+
+<!-- WITHDRAW -->
+<div id="withdraw" class="page">
+<p>Maximum Withdraw: ₹500</p>
+
+<input id="name" placeholder="Name"><br>
+<input id="bank" placeholder="Bank Name"><br>
+<input id="acc" placeholder="Account Number"><br>
+<input id="ifsc" placeholder="IFSC Code"><br>
+<input id="wAmt" placeholder="Amount"><br>
+<button onclick="withdraw()">Submit</button><br>
+<button onclick="showPage('game')">Back</button>
+</div>
+
+<!-- ADMIN -->
+<div id="admin" class="page">
+<h3>Admin Panel</h3>
+<div id="adminData"></div>
+</div>
+
+<button onclick="openAdmin()">Admin</button>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-app.js";
-import { getDatabase, ref, set, get, child } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-database.js";
+import { getDatabase, ref, set, get, child, push } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDCYEveGXPy1nORiyyeyIjsbfcqEy4iaVg",
   authDomain: "avaitior-game.firebaseapp.com",
   databaseURL: "https://avaitior-game-default-rtdb.firebaseio.com",
   projectId: "avaitior-game"
-};
-
-const app = initializeApp(firebaseConfig);
+};const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-let user="";
-let balance=0;
-let multi=1;
-let running=false;
-let bet=0;
+let user="", balance=0, multi=1, running=false;
+
+// PAGE SWITCH
+window.showPage = (p)=>{
+  document.querySelectorAll('.page').forEach(x=>x.style.display='none');
+  document.getElementById(p).style.display='block';
+};
 
 // LOGIN
-window.login = async function(){
-  user = document.getElementById("mobile").value;
-  let pass = document.getElementById("pass").value;
+window.login = async ()=>{
+  user = mobile.value;
+  let passVal = pass.value;
 
-  if(!user || !pass) return alert("Fill details");
+  if(!user || !passVal) return alert("Fill details");
 
-  const snapshot = await get(child(ref(db), "users/"+user));
+  const snap = await get(child(ref(db),"users/"+user));
 
-  if(snapshot.exists()){
-    balance = Number(snapshot.val().balance) || 0;
+  if(snap.exists()){
+    balance = Number(snap.val().balance) || 0;
   } else {
     balance = 100;
-    await set(ref(db,"users/"+user), {balance: balance});
+    await set(ref(db,"users/"+user), {balance:balance});
   }
 
-  document.getElementById("bal").innerText = balance;
-
-  document.getElementById("login").style.display="none";
-  document.getElementById("game").style.display="block";
-
-  startRound();
-}
-
-// GAME AUTO ROUND
-function startRound(){
+  bal.innerText = balance;
+  showPage('game');
+  startGame();
+};
+// GAME LOOP
+function startGame(){
   multi = 1;
   running = true;
-  bet = Number(document.getElementById("bet").value) || 0;
+  let pos=0;
 
-  let pos = 0;
-  document.getElementById("plane").style.left="0px";
+  let int = setInterval(()=>{
+    multi+=0.05;
+    pos+=4;
 
-  let interval = setInterval(()=>{
-    multi += 0.05;
-    pos += 4;
+    multiEl.innerText = multi.toFixed(2)+"x";
+    plane.style.left = pos+"px";
 
-    document.getElementById("multi").innerText = multi.toFixed(2)+"x";
-    document.getElementById("plane").style.left = pos+"px";
-
-    if(Math.random() < 0.03){
-      clearInterval(interval);
+    if(Math.random()<0.03){
+      clearInterval(int);
       running=false;
 
-      document.getElementById("multi").innerText = "💥 "+multi.toFixed(2);
+      multiEl.innerText="💥 "+multi.toFixed(2);
 
-      setTimeout(startRound,3000);
+      setTimeout(startGame,3000);
     }
-
   },100);
 }
-
 // CASHOUT
-window.cashout = function(){
+window.cashout = ()=>{
   if(!running) return;
 
-  running=false;
+  let betVal = Number(bet.value);
+  if(!betVal || betVal>balance) return alert("Invalid Bet");
 
-  let b = Number(document.getElementById("bet").value);
-
-  if(isNaN(b) || b<=0) return alert("Enter bet first");
-
-  if(b > balance) return alert("Low balance");
-
-  let win = b * multi;
-
+  let win = betVal*multi;
   balance += win;
 
-  updateBal();
+  set(ref(db,"users/"+user+"/balance"), balance);
+  bal.innerText = balance;
 
   alert("Won ₹"+win.toFixed(0));
-}
-
-// UPDATE BALANCE
-function updateBal(){
-  document.getElementById("bal").innerText = balance;
-  set(ref(db,"users/"+user+"/balance"), balance);
-}
-
-// PAGES
-window.showDeposit = ()=>{
-  document.getElementById("game").style.display="none";
-  document.getElementById("depositPage").style.display="block";
-}
-
-window.showWithdraw = ()=>{
-  document.getElementById("game").style.display="none";
-  document.getElementById("withdrawPage").style.display="block";
-}
-
-window.back = ()=>{
-  document.getElementById("depositPage").style.display="none";
-  document.getElementById("withdrawPage").style.display="none";
-  document.getElementById("game").style.display="block";
-}
+};
 
 // DEPOSIT
 window.deposit = ()=>{
-  let amt = document.getElementById("depAmt").value;
-  let utr = document.getElementById("utr").value;
+  let amt = depAmt.value;
+  let u = utr.value;
 
-  if(!amt || !utr) return alert("Fill all");
+  if(!amt || amt>500) return alert("Max 500");
 
-  alert("Deposit request saved (manual check)");
-}
+  push(ref(db,"deposits"),{
+    user:user,
+    amount:amt,
+    utr:u,
+    status:"pending"
+  });
+alert("Deposit request sent");
+};
 
 // WITHDRAW
 window.withdraw = ()=>{
+  let amt = wAmt.value;
+
+  if(!amt || amt>500) return alert("Max 500");
+
+  push(ref(db,"withdraws"),{
+    user:user,
+    name:name.value,
+    bank:bank.value,
+    acc:acc.value,
+    ifsc:ifsc.value,
+    amount:amt,
+    status:"pending"
+  });
+
+  alert("Withdraw request sent");
+};
+
+// ADMIN PANEL
+window.openAdmin = async ()=>{
+  let code = prompt("Enter admin code");
+  if(code!="1234") return;
+
+  showPage('admin');
+
+  let html="<h4>Deposits</h4>";
+  let d = await get(ref(db,"deposits"));
+  d.forEach(x=>{
+    let v=x.val();
+    html += `${v.user} ₹${v.amount} (${v.status})<br>`;
+  });
+  html+="<h4>Withdraws</h4>";
+  let w = await get(ref(db,"withdraws"));
+  w.forEach(x=>{
+    let v=x.val();
+    html += `${v.user} ₹${v.amount} (${v.status})<br>`;
+  });
+
+  adminData.innerHTML = html;
+};
+</script>
+
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
