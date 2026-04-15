@@ -13,7 +13,11 @@ input, button {
   border-radius:5px;
 }
 
-button { background:#333; color:#fff; }
+button {
+  background:#00ffcc;
+  color:#000;
+  font-weight:bold;
+}
 
 #plane {
   font-size:50px;
@@ -36,7 +40,7 @@ button { background:#333; color:#fff; }
 
 <!-- GAME -->
 <div id="game" style="display:none;">
-  <h3>Balance: ₹<span id="bal">0</span></h3>
+  <h3>Total Balance: ₹<span id="bal">0</span></h3>
 
   <button onclick="showDeposit()">Deposit</button>
   <button onclick="showWithdraw()">Withdraw</button>
@@ -53,20 +57,22 @@ button { background:#333; color:#fff; }
 <div id="deposit" style="display:none;">
   <h3>Deposit</h3>
   <p>UPI: 7260957661@ybl</p>
-  <p>Max Deposit: ₹500</p>
+  <p>Max ₹500</p>
   <input id="depAmt" placeholder="Amount">
   <button onclick="sendDeposit()">Submit</button>
+  <button onclick="backGame()">Back</button>
 </div>
 
 <!-- WITHDRAW -->
 <div id="withdraw" style="display:none;">
   <h3>Withdraw</h3>
-  <p>Max Withdraw: ₹500</p>
-  <input id="name" placeholder="Name">
-  <input id="acc" placeholder="Account Number">
-  <input id="ifsc" placeholder="IFSC">
-  <input id="withAmt" placeholder="Amount">
+  <p>Max ₹500 (Only real balance)</p>
+  <input id="name" placeholder="Name"><br>
+  <input id="acc" placeholder="Account Number"><br>
+  <input id="ifsc" placeholder="IFSC"><br>
+  <input id="withAmt" placeholder="Amount"><br>
   <button onclick="sendWithdraw()">Submit</button>
+  <button onclick="backGame()">Back</button>
 </div>
 
 <script type="module">
@@ -75,15 +81,17 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.0/fireba
 import { getDatabase, ref, set, get, update, push } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-database.js";
 
 const app = initializeApp({
-  apiKey: "AIzaSyDCYEveGXPy1nORiyyeyIjsbfcqEy4iaVg",
-  authDomain: "avaitior-game.firebaseapp.com",
-  databaseURL: "https://avaitior-game-default-rtdb.firebaseio.com",
-  projectId: "avaitior-game"
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  databaseURL: "YOUR_DB_URL",
+  projectId: "YOUR_PROJECT"
 });
 
 const db = getDatabase(app);
+
 let user = "";
-let balance = 0;
+let balance = 0;   // real money
+let bonus = 0;     // free ₹100
 let multiplier = 1;
 let running = false;
 let betAmt = 0;
@@ -95,35 +103,55 @@ window.login = async function() {
   let snap = await get(ref(db, "users/" + user));
 
   if (!snap.exists()) {
-    balance = 100;
-    await set(ref(db, "users/" + user), { balance });
+    balance = 0;
+    bonus = 100;
+
+    await set(ref(db, "users/" + user), {
+      balance,
+      bonus
+    });
+
   } else {
-    balance = Number(snap.val().balance || 0);
+    let data = snap.val();
+    balance = Number(data.balance || 0);
+    bonus = Number(data.bonus || 0);
   }
 
-  document.getElementById("bal").innerText = balance;
+  updateBalance();
 
   document.getElementById("login").style.display="none";
   document.getElementById("game").style.display="block";
 }
 
+// SHOW BALANCE
+function updateBalance(){
+  let total = balance + bonus;
+  document.getElementById("bal").innerText = total.toFixed(2);
+}
+
 // START BET
 window.startBet = function() {
+
   if (running) return;
 
   betAmt = Number(document.getElementById("bet").value);
 
-  if (!betAmt || betAmt <= 0 || betAmt > balance) {
+  if (!betAmt || betAmt <= 0 || betAmt > (balance + bonus)) {
     alert("Invalid Bet");
     return;
   }
 
-  balance -= betAmt;
-  balance = Math.floor(balance);
+  // first use bonus
+  if (bonus >= betAmt) {
+    bonus -= betAmt;
+  } else {
+    let remain = betAmt - bonus;
+    bonus = 0;
+    balance -= remain;
+  }
 
-  update(ref(db, "users/" + user), { balance });
-
-  document.getElementById("bal").innerText = balance;
+  saveUser();
+  updateBalance();
 
   startGame();
 }
@@ -160,47 +188,83 @@ function startGame() {
 
 // CASHOUT
 window.cashout = function() {
+
   if (!running) return;
 
   let win = betAmt * multiplier;
 
-  balance += win;
-  balance = Math.floor(balance);
+  balance += win; // only real balance increase
 
-  update(ref(db, "users/" + user), { balance });
-
-  document.getElementById("bal").innerText = balance;
+  saveUser();
+  updateBalance();
 
   running = false;
 }
 
-// DEPOSIT
-window.showDeposit = ()=> document.getElementById("deposit").style.display="block";
+// SAVE USER
+function saveUser(){
+  update(ref(db, "users/" + user), {
+    balance,
+    bonus
+  });
+}
 
+// UI
+window.showDeposit = ()=>{
+  document.getElementById("game").style.display="none";
+  document.getElementById("deposit").style.display="block";
+}
+
+window.showWithdraw = ()=>{
+  document.getElementById("game").style.display="none";
+  document.getElementById("withdraw").style.display="block";
+}
+
+window.backGame = ()=>{
+  document.getElementById("deposit").style.display="none";
+  document.getElementById("withdraw").style.display="none";
+  document.getElementById("game").style.display="block";
+}
+
+// DEPOSIT
 window.sendDeposit = ()=>{
   let amt = Number(document.getElementById("depAmt").value);
 
-  if (amt > 500) return alert("Max 500");
+  if (!amt || amt <=0 || amt > 500) {
+    alert("Max ₹500");
+    return;
+  }
 
   push(ref(db,"deposit"), { user, amt, status:"pending" });
 
-  alert("Deposit request sent");
+  alert("Deposit Request Sent");
 }
 
 // WITHDRAW
-window.showWithdraw = ()=> document.getElementById("withdraw").style.display="block";
-
 window.sendWithdraw = ()=>{
+
   let amt = Number(document.getElementById("withAmt").value);
-  let name = document.getElementById("name").value;
-  let acc = document.getElementById("acc").value;
-  let ifsc = document.getElementById("ifsc").value;
 
-  if (amt > 500) return alert("Max 500");
+  if (!amt || amt <=0 || amt > 500) {
+    alert("Max ₹500");
+    return;
+  }
 
-  push(ref(db,"withdraw"), { user, amt, name, acc, ifsc, status:"pending" });
+  if (amt > balance) {
+    alert("Only real balance withdraw allowed");
+    return;
+  }
 
-  alert("Withdraw request sent");
+  push(ref(db,"withdraw"), {
+    user,
+    amt,
+    name: document.getElementById("name").value,
+    acc: document.getElementById("acc").value,
+    ifsc: document.getElementById("ifsc").value,
+    status:"pending"
+  });
+
+  alert("Withdraw Request Sent");
 }
 
 </script>
@@ -208,7 +272,3 @@ window.sendWithdraw = ()=>{
 </body>
 </html>
 
-
-
-
-  
