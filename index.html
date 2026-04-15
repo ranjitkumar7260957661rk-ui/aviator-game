@@ -1,193 +1,179 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Aviator Control</title>
-
-<style>
-body { background:#111; color:#fff; text-align:center; font-family:sans-serif; }
-input, button { padding:10px; margin:5px; border:none; border-radius:5px; }
-button { background:#00c853; color:#fff; }
-.page { display:none; }
-</style>
-
+  <title>Aviator Game</title>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <style>
+    body { font-family: Arial; background:#111; color:white; text-align:center; }
+    input, button { padding:10px; margin:5px; border-radius:8px; border:none; }
+    button { background:red; color:white; font-weight:bold; }
+    .box { display:none; }
+  </style>
 </head>
+
 <body>
 
 <!-- LOGIN -->
-<div id="login" class="page" style="display:block;">
-  <h2>Aviator ✈️</h2>
+<div id="login">
+  <h2>Login</h2>
   <input id="mobile" placeholder="Mobile"><br>
-  <input id="pass" placeholder="Password" type="password"><br>
+  <input id="pass" placeholder="Password"><br>
   <button onclick="login()">Login</button>
 </div>
 
 <!-- GAME -->
-<div id="game" class="page">
-  <h3>Balance: ₹<span id="bal">0</span></h3>
-
+<div id="game" class="box">
+  <h2>Balance: ₹<span id="bal">0</span></h2>
   <h1 id="multi">1.00x</h1>
 
-  <input id="bet" placeholder="Bet"><br>
+  <input id="bet" placeholder="Bet Amount">
   <button onclick="startGame()">Start</button>
-  <button onclick="cashout()">Cashout</button><br>
+  <button onclick="cashout()">Cashout</button><br><br>
 
-  <button onclick="showPage('deposit')">Deposit</button>
-  <button onclick="showPage('withdraw')">Withdraw</button>
-
-  <h3 id="status"></h3>
+  <button onclick="openDeposit()">Deposit</button>
+  <button onclick="openWithdraw()">Withdraw</button>
 </div>
 
 <!-- DEPOSIT -->
-<div id="deposit" class="page">
-  <h3>Deposit</h3>
-  <input id="damount" placeholder="Amount"><br>
-  <button onclick="deposit()">Submit</button><br>
+<div id="deposit" class="box">
+  <h2>Deposit</h2>
+  <p>UPI: yourupi@upi</p>
+  <input id="d_amount" placeholder="Amount (max 500)">
+  <input id="utr" placeholder="UTR Number">
+  <button onclick="submitDeposit()">Submit</button>
   <button onclick="back()">Back</button>
 </div>
 
 <!-- WITHDRAW -->
-<div id="withdraw" class="page">
-  <h3>Withdraw</h3>
-  <input id="wamount" placeholder="Amount"><br>
-  <button onclick="withdraw()">Submit</button><br>
+<div id="withdraw" class="box">
+  <h2>Withdraw</h2>
+  <input id="w_name" placeholder="Name">
+  <input id="w_amount" placeholder="Amount">
+  <input id="acc" placeholder="Account Number">
+  <input id="ifsc" placeholder="IFSC">
+  <button onclick="submitWithdraw()">Submit</button>
   <button onclick="back()">Back</button>
 </div>
 
-<script type="module">
-
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-app.js";
-import { getDatabase, ref, set, get, update, push } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-database.js";
-
-const app = initializeApp({
-  apiKey: "AIzaSyDCYEveGXPy1nORiyyeyIjsbfcqEy4iaVg",
-  authDomain: "avaitior-game.firebaseapp.com",
-  databaseURL: "https://avaitior-game-default-rtdb.firebaseio.com",
-  projectId: "avaitior-game"
-});
-
-const db = getDatabase(app);
+<script>
+var firebaseConfig = {
+  apiKey: "YOUR_KEY",
+  authDomain: "YOUR_DOMAIN",
+  databaseURL: "YOUR_DB_URL",
+  projectId: "YOUR_ID",
+};
+firebase.initializeApp(firebaseConfig);
+var db = firebase.database();
 
 let user = "";
 let balance = 0;
-let running = false;
-let multi = 1;
-let crash = 2;
-let betAmt = 0;
+let multiplier = 1;
+let gameRun = false;
 
-// PAGE
-window.showPage = (p)=>{
-  document.querySelectorAll('.page').forEach(x=>x.style.display='none');
-  document.getElementById(p).style.display='block';
-};
-window.back = ()=> showPage('game');
-
-// LOGIN
-window.login = async ()=>{
-  user = mobile.value;
-
-  let snap = await get(ref(db,"users/"+user));
-
-  if(!snap.exists()){
-    balance = 100;
-    await set(ref(db,"users/"+user),{balance});
-  } else {
-    balance = snap.val().balance || 0;
-  }
-
-  bal.innerText = balance;
-  showPage("game");
-};
-
-// GAME START
-window.startGame = async ()=>{
-  if(running) return;
-
-  betAmt = Number(bet.value);
-  if(betAmt<=0 || betAmt>balance) return alert("Invalid Bet");
-
-  // 🔥 CONTROL FETCH
-  let snap = await get(ref(db,"control"));
-  let data = snap.val() || {};
-
-  // demo lock
-  if(data.demoLock){
-    return alert("Demo Disabled");
-  }
-
-  // crash control
-  crash = data.crashPoint || (Math.random()*5+1);
-
-  balance -= betAmt;
-  bal.innerText = balance;
-
-  running = true;
-  multi = 1;
-
-  let int = setInterval(()=>{
-    if(!running) return;
-
-    multi += 0.1;
-    multiEl.innerText = multi.toFixed(2)+"x";
-
-    if(multi >= crash){
-      running = false;
-      clearInterval(int);
-      status.innerText = "💥 Crashed";
-      save();
+function login(){
+  let m = mobile.value;
+  let p = pass.value;
+  db.ref("users/"+m).once("value", snap=>{
+    if(snap.exists()){
+      if(snap.val().password == p){
+        user = m;
+        balance = snap.val().balance;
+        showGame();
+      } else alert("Wrong Password");
+    } else {
+      db.ref("users/"+m).set({
+        mobile:m,
+        password:p,
+        balance:100
+      });
+      alert("Account Created");
     }
-
-  },200);
-};
-
-// CASHOUT
-window.cashout = ()=>{
-  if(!running) return;
-
-  let win = betAmt * multi;
-  balance += Math.floor(win);
-
-  bal.innerText = balance;
-  running = false;
-  status.innerText = "✅ Cashed Out";
-
-  save();
-};
-
-// SAVE
-function save(){
-  update(ref(db,"users/"+user),{balance});
+  });
 }
 
-// DEPOSIT
-window.deposit = ()=>{
-  let amt = damount.value;
+function showGame(){
+  login.style.display="none";
+  game.style.display="block";
+  bal.innerText = balance;
+}
 
-  push(ref(db,"deposits"),{
-    user, amount:amt, status:"pending"
+function startGame(){
+  let bet = Number(document.getElementById("bet").value);
+  if(bet>balance){ alert("No Balance"); return;}
+  balance -= bet;
+  updateBal();
+
+  multiplier=1;
+  gameRun=true;
+
+  let int = setInterval(()=>{
+    if(!gameRun){ clearInterval(int); return;}
+    multiplier += 0.1;
+    multi.innerText = multiplier.toFixed(2)+"x";
+
+    if(multiplier> (Math.random()*5+1)){
+      multi.innerText="CRASH 💥";
+      gameRun=false;
+    }
+  },200);
+}
+
+function cashout(){
+  if(!gameRun) return;
+  let win = Number(bet.value) * multiplier;
+  balance += win;
+  updateBal();
+  gameRun=false;
+}
+
+function updateBal(){
+  bal.innerText = balance;
+  db.ref("users/"+user+"/balance").set(balance);
+}
+
+function openDeposit(){
+  game.style.display="none";
+  deposit.style.display="block";
+}
+
+function openWithdraw(){
+  game.style.display="none";
+  withdraw.style.display="block";
+}
+
+function back(){
+  deposit.style.display="none";
+  withdraw.style.display="none";
+  game.style.display="block";
+}
+
+function submitDeposit(){
+  let amt = Number(d_amount.value);
+  let u = utr.value;
+  if(amt>500){ alert("Max 500"); return;}
+  let id = Date.now();
+  db.ref("deposits/"+id).set({
+    user:user,
+    amount:amt,
+    utr:u,
+    status:"pending"
   });
-
   alert("Deposit Request Sent");
-};
+}
 
-// WITHDRAW
-window.withdraw = async ()=>{
-  let amt = wamount.value;
-
-  let snap = await get(ref(db,"control"));
-  let data = snap.val() || {};
-
-  // withdraw lock
-  if(data.withdrawLock){
-    return alert("Withdraw Disabled");
-  }
-
-  push(ref(db,"withdraw"),{
-    user, amount:amt, status:"pending"
+function submitWithdraw(){
+  let id = Date.now();
+  db.ref("withdraw/"+id).set({
+    user:user,
+    name:w_name.value,
+    amount:w_amount.value,
+    acc:acc.value,
+    ifsc:ifsc.value,
+    status:"pending"
   });
-
   alert("Withdraw Request Sent");
-};
-
+}
 </script>
 
 </body>
