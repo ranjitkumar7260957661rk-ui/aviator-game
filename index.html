@@ -80,14 +80,13 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
+let currentUser = localStorage.getItem("user") || "";
+let balance = 0;
+
 // AUTO LOGIN (refresh fix)
 if(currentUser){
   showPage('game');
-  loadUser();
 }
-
-let currentUser = localStorage.getItem("user") || "";
-let balance = 0;
 
 // PAGE SWITCH
 window.showPage = (p)=>{
