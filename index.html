@@ -1,97 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Aviator</title>
+  <style>
+    body { background:black; color:white; text-align:center; font-family:Arial; }
+    input, button { padding:10px; margin:5px; }
+    .page { display:none; }
+  </style>
+</head>
 
-  let int = setInterval(()=>{
-    if(!running) return;
+<body>
 
-    multi += 0.1;
-    multiEl.innerText = multi.toFixed(2)+"x";
+<div id="login" class="page" style="display:block;">
+  <h2>Login</h2>
+  <input id="mobile" placeholder="Mobile"><br>
+  <input id="pass" placeholder="Password" type="password"><br>
+  <button onclick="login()">Login</button>
+</div>
 
-    if(multi >= crash){
-      running = false;
-      clearInterval(int);
-      status.innerText = "Crashed ❌";
-      saveBalance();
+<div id="game" class="page">
+  <h3>Balance: ₹<span id="bal">0</span></h3>
+  <h1 id="multi">1.00x</h1>
+
+  <input id="bet" placeholder="Bet"><br>
+  <button onclick="startGame()">Bet</button>
+  <button onclick="cashout()">Cashout</button><br>
+
+  <button onclick="showPage('deposit')">Deposit</button>
+  <button onclick="showPage('withdraw')">Withdraw</button>
+
+  <h4 id="status"></h4>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+
+<script>
+const firebaseConfig = {
+  apiKey: "APNA_API_KEY",
+  authDomain: "APNA_AUTH_DOMAIN",
+  databaseURL: "https://avaitior-game-default-rtdb.firebaseio.com",
+  projectId: "avaitior-game"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+let currentUser = "";
+let balance = 0;
+
+function showPage(p){
+  document.querySelectorAll('.page').forEach(x=>x.style.display='none');
+  document.getElementById(p).style.display='block';
+}
+
+function login(){
+  let m = document.getElementById("mobile").value;
+  let p = document.getElementById("pass").value;
+
+  currentUser = m;
+
+  db.ref("users/"+m).once("value", snap=>{
+    if(snap.exists()){
+      let data = snap.val();
+      balance = data.balance;
+    } else {
+      balance = 100;
+      db.ref("users/"+m).set({password:p, balance:100});
     }
-  },200);
-};
-// CASHOUT
-window.cashout = ()=>{
-  if(!running) return;
-
-  let bet = Number(document.getElementById("bet").value);
-  let win = bet * multi;
-
-  balance += win;
-  bal.innerText = Math.floor(balance);
-
-  running = false;
-  status.innerText = "Cashed Out ✅";
-
-  saveBalance();
-};
-
-// SAVE BALANCE (PERMANENT 🔥)
-function saveBalance(){
-  update(ref(db,'users/'+currentUser),{
-    balance: balance
+document.getElementById("bal").innerText = balance;
+    showPage('game');
   });
 }
 
-// DEPOSIT (REQUEST)
-window.deposit = ()=>{
-  let amt = Number(damount.value);
-  let u = utr.value;
-
-  if(amt<=0) return alert("Invalid");
-
-  push(ref(db,'deposits'),{
-    user: currentUser,
-    amount: amt,
-    utr: u,
-    status: "pending"
+function saveBalance(){
+  db.ref("users/"+currentUser).update({
+    balance: balance
   });
-
-  alert("Deposit Request Sent");
-};
-// WITHDRAW (REQUEST)
-window.withdraw = ()=>{
-  let amt = Number(wamount.value);
-
-  if(amt<=0 || amt>balance){
-    alert("Invalid");
-    return;
-  }
-
-  push(ref(db,'withdraws'),{
-    user: currentUser,
-    amount: amt,
-    status: "pending"
-  });
-
-  alert("Withdraw Request Sent");
-};
-
+}
 </script>
 
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  
