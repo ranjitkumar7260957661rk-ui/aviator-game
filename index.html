@@ -80,8 +80,13 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
+// AUTO LOGIN (refresh fix)
+if(currentUser){
+  showPage('game');
+  loadUser();
+}
 
-let currentUser = "";
+let currentUser = localStorage.getItem("user") || "";
 let balance = 0;
 
 // PAGE SWITCH
@@ -96,6 +101,7 @@ window.login = ()=>{
   let m = mobile.value;
   let p = pass.value;
   currentUser = m;
+  localStorage.setItem("user", m);
 
   get(child(ref(db), 'users/'+m)).then(snap=>{
     if(snap.exists()){
