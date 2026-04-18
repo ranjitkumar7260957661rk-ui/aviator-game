@@ -11,7 +11,6 @@
 
 <body>
 
-<!-- LOGIN -->
 <div id="login" class="page" style="display:block;">
   <h2>Login</h2>
   <input id="mobile" placeholder="Mobile"><br>
@@ -19,7 +18,6 @@
   <button onclick="login()">Login</button>
 </div>
 
-<!-- GAME -->
 <div id="game" class="page">
   <h3>Balance: ₹<span id="bal">0</span></h3>
   <h1 id="multi">1.00x</h1>
@@ -34,7 +32,6 @@
   <h4 id="status"></h4>
 </div>
 
-<!-- DEPOSIT -->
 <div id="deposit" class="page">
   <h2>Deposit</h2>
   <input id="damount" placeholder="Amount"><br>
@@ -43,7 +40,6 @@
   <button onclick="back()">Back</button>
 </div>
 
-<!-- WITHDRAW -->
 <div id="withdraw" class="page">
   <h2>Withdraw</h2>
   <input id="wamount" placeholder="Amount"><br>
@@ -56,7 +52,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.0/fireba
 import { getDatabase, ref, set, get, child, update, push, onValue } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-database.js";
 
 const firebaseConfig = {
-  apiKey: "PASTE_YOUR_REAL_API_KEY_HERE",
+  apiKey: "👉 YAHAN APNI REAL API KEY DAL 👈",
   authDomain: "avaitior-game.firebaseapp.com",
   databaseURL: "https://avaitior-game-default-rtdb.firebaseio.com",
   projectId: "avaitior-game"
@@ -106,7 +102,7 @@ window.login = ()=>{
   });
 };
 
-// REALTIME BALANCE
+// BALANCE LOAD
 function loadUser(){
   onValue(ref(db,'users/'+currentUser), snap=>{
     if(snap.exists()){
@@ -131,7 +127,7 @@ window.startGame = ()=>{
   running=true;
 };
 
-// AUTO PLANE 24/7
+// AUTO PLANE
 function startAutoGame(){
   let int = setInterval(()=>{
     if(!running) return;
@@ -143,7 +139,6 @@ function startAutoGame(){
       running=false;
       clearInterval(int);
       document.getElementById("status").innerText="Crashed ❌";
-
       setTimeout(startAutoGame, 2000);
     }
   },100);
@@ -163,44 +158,36 @@ window.cashout = ()=>{
   }
 };
 
-// SAVE BALANCE
+// SAVE
 function saveBalance(){
   update(ref(db,'users/'+currentUser),{balance:balance});
 }
 
 // DEPOSIT
 window.deposit = ()=>{
-  let amt = damount.value;
-  let u = utr.value;
-
   push(ref(db,'deposits'),{
     user: currentUser,
-    amount: amt,
-    utr: u,
+    amount: damount.value,
+    utr: utr.value,
     status: "pending"
   });
-
-  alert("Deposit request sent");
+  alert("Deposit sent");
 };
 
 // WITHDRAW
 window.withdraw = ()=>{
-  let amt = wamount.value;
-
   push(ref(db,'withdraws'),{
     user: currentUser,
-    amount: amt,
+    amount: wamount.value,
     status: "pending"
   });
-
-  alert("Withdraw request sent");
+  alert("Withdraw sent");
 };
 
-// START LOOP
+// START
 window.onload = ()=>{
   startAutoGame();
 };
-
 </script>
 
 </body>
