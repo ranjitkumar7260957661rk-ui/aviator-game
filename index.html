@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Aviator Full System</title>
+  <title>Aviator Demo</title>
   <style>
-    body { font-family: Arial; background:#111; color:#fff; text-align:center; }
+    body { background:#111; color:#fff; text-align:center; font-family:Arial; }
     input, button { padding:10px; margin:5px; }
     .page { display:none; }
   </style>
@@ -14,7 +14,7 @@
 <div id="login" class="page" style="display:block;">
   <h2>Login</h2>
   <input id="mobile" placeholder="Mobile"><br>
-  <input id="pass" placeholder="Password" type="password"><br>
+  <input id="pass" placeholder="Password"><br>
   <button onclick="login()">Login</button>
 </div>
 
@@ -24,35 +24,17 @@
 
   <input id="bet" placeholder="Bet"><br>
   <button onclick="startGame()">Start</button>
-  <button onclick="cashout()">Cashout</button><br>
-
-  <button onclick="showPage('deposit')">Deposit</button>
-  <button onclick="showPage('withdraw')">Withdraw</button>
+  <button onclick="cashout()">Cashout</button>
 
   <h4 id="status"></h4>
 </div>
 
-<div id="deposit" class="page">
-  <h2>Deposit</h2>
-  <input id="damount" placeholder="Amount"><br>
-  <input id="utr" placeholder="UTR Number"><br>
-  <button onclick="deposit()">Submit</button><br>
-  <button onclick="back()">Back</button>
-</div>
-
-<div id="withdraw" class="page">
-  <h2>Withdraw</h2>
-  <input id="wamount" placeholder="Amount"><br>
-  <button onclick="withdraw()">Submit</button><br>
-  <button onclick="back()">Back</button>
-</div>
-
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-app.js";
-import { getDatabase, ref, set, get, child, update, push, onValue } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-database.js";
+import { getDatabase, ref, set, get, child, update, onValue } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-database.js";
 
 const firebaseConfig = {
-  apiKey: "👉 YAHAN APNI REAL API KEY DAL 👈",
+  apiKey: "APNI_REAL_KEY_DAL",
   authDomain: "avaitior-game.firebaseapp.com",
   databaseURL: "https://avaitior-game-default-rtdb.firebaseio.com",
   projectId: "avaitior-game"
@@ -64,12 +46,10 @@ const db = getDatabase(app);
 let currentUser = localStorage.getItem("user") || "";
 let balance = 0;
 
-// PAGE SWITCH
-window.showPage = (p)=>{
+function showPage(p){
   document.querySelectorAll('.page').forEach(x=>x.style.display='none');
   document.getElementById(p).style.display='block';
-};
-window.back = ()=> showPage('game');
+}
 
 // AUTO LOGIN
 if(currentUser){
@@ -77,20 +57,18 @@ if(currentUser){
   loadUser();
 }
 
-// LOGIN
 window.login = ()=>{
-  let m = document.getElementById("mobile").value;
-  let p = document.getElementById("pass").value;
+  let m = mobile.value;
+  let p = pass.value;
 
-  if(!m || !p) return alert("Enter details");
+  if(!m || !p) return alert("Fill details");
 
   currentUser = m;
   localStorage.setItem("user", m);
 
-  get(child(ref(db), 'users/'+m)).then(snap=>{
+  get(child(ref(db),'users/'+m)).then(snap=>{
     if(snap.exists()){
-      let data = snap.val();
-      if(data.password === p){
+      if(snap.val().password === p){
         loadUser();
         showPage('game');
       } else alert("Wrong password");
@@ -102,12 +80,11 @@ window.login = ()=>{
   });
 };
 
-// BALANCE LOAD
 function loadUser(){
   onValue(ref(db,'users/'+currentUser), snap=>{
     if(snap.exists()){
       balance = snap.val().balance || 0;
-      document.getElementById("bal").innerText = balance;
+      bal.innerText = balance;
     }
   });
 }
@@ -116,77 +93,50 @@ function loadUser(){
 let running=false, multi=1, crash;
 
 window.startGame = ()=>{
-  let bet = Number(document.getElementById("bet").value);
+  let bet = Number(betInput.value);
   if(bet<=0 || bet>balance) return alert("Invalid");
 
   balance -= bet;
-  saveBalance();
+  save();
 
   multi=1;
   crash = Math.random()*5+1;
   running=true;
 };
 
-// AUTO PLANE
-function startAutoGame(){
-  let int = setInterval(()=>{
+function gameLoop(){
+  setInterval(()=>{
     if(!running) return;
 
     multi+=0.1;
-    document.getElementById("multi").innerText = multi.toFixed(2)+"x";
+    multiEl.innerText = multi.toFixed(2)+"x";
 
     if(multi>=crash){
       running=false;
-      clearInterval(int);
-      document.getElementById("status").innerText="Crashed ❌";
-      setTimeout(startAutoGame, 2000);
+      status.innerText="Crashed";
     }
   },100);
 }
 
-// CASHOUT
 window.cashout = ()=>{
-  if(running){
-    let bet = Number(document.getElementById("bet").value);
-    let win = bet*multi;
+  if(!running) return;
 
-    balance += win;
-    saveBalance();
+  let bet = Number(betInput.value);
+  let win = bet * multi;
 
-    running=false;
-    document.getElementById("status").innerText="Win ₹"+Math.floor(win);
-  }
+  balance += win;
+  save();
+
+  running=false;
+  status.innerText="Win ₹"+Math.floor(win);
 };
 
-// SAVE
-function saveBalance(){
+function save(){
   update(ref(db,'users/'+currentUser),{balance:balance});
 }
 
-// DEPOSIT
-window.deposit = ()=>{
-  push(ref(db,'deposits'),{
-    user: currentUser,
-    amount: damount.value,
-    utr: utr.value,
-    status: "pending"
-  });
-  alert("Deposit sent");
-};
-
-// WITHDRAW
-window.withdraw = ()=>{
-  push(ref(db,'withdraws'),{
-    user: currentUser,
-    amount: wamount.value,
-    status: "pending"
-  });
-  alert("Withdraw sent");
-};
-
-// START
 window.onload = ()=>{
-  startAutoGame();
+  gameLoop();
 };
 </script>
 
