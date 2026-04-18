@@ -11,6 +11,7 @@
 
 <body>
 
+<!-- LOGIN -->
 <div id="login" class="page" style="display:block;">
   <h2>Login</h2>
   <input id="mobile" placeholder="Mobile"><br>
@@ -18,6 +19,7 @@
   <button onclick="login()">Login</button>
 </div>
 
+<!-- GAME -->
 <div id="game" class="page">
   <h3>Balance: ₹<span id="bal">0</span></h3>
   <h1 id="multi">1.00x</h1>
@@ -32,6 +34,7 @@
   <h4 id="status"></h4>
 </div>
 
+<!-- DEPOSIT -->
 <div id="deposit" class="page">
   <h2>Deposit</h2>
   <input id="damount" placeholder="Amount"><br>
@@ -40,6 +43,7 @@
   <button onclick="back()">Back</button>
 </div>
 
+<!-- WITHDRAW -->
 <div id="withdraw" class="page">
   <h2>Withdraw</h2>
   <input id="wamount" placeholder="Amount"><br>
@@ -52,7 +56,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.0/fireba
 import { getDatabase, ref, set, get, child, update, push, onValue } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-database.js";
 
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
+  apiKey: "PASTE_YOUR_REAL_API_KEY_HERE",
   authDomain: "avaitior-game.firebaseapp.com",
   databaseURL: "https://avaitior-game-default-rtdb.firebaseio.com",
   projectId: "avaitior-game"
@@ -64,12 +68,6 @@ const db = getDatabase(app);
 let currentUser = localStorage.getItem("user") || "";
 let balance = 0;
 
-// AUTO LOGIN
-if(currentUser){
-  showPage('game');
-  loadUser();
-}
-
 // PAGE SWITCH
 window.showPage = (p)=>{
   document.querySelectorAll('.page').forEach(x=>x.style.display='none');
@@ -77,10 +75,16 @@ window.showPage = (p)=>{
 };
 window.back = ()=> showPage('game');
 
+// AUTO LOGIN
+if(currentUser){
+  showPage('game');
+  loadUser();
+}
+
 // LOGIN
 window.login = ()=>{
-  let m = mobile.value;
-  let p = pass.value;
+  let m = document.getElementById("mobile").value;
+  let p = document.getElementById("pass").value;
 
   if(!m || !p) return alert("Enter details");
 
@@ -127,6 +131,7 @@ window.startGame = ()=>{
   running=true;
 };
 
+// AUTO PLANE 24/7
 function startAutoGame(){
   let int = setInterval(()=>{
     if(!running) return;
@@ -144,6 +149,7 @@ function startAutoGame(){
   },100);
 }
 
+// CASHOUT
 window.cashout = ()=>{
   if(running){
     let bet = Number(document.getElementById("bet").value);
@@ -157,7 +163,7 @@ window.cashout = ()=>{
   }
 };
 
-// SAVE
+// SAVE BALANCE
 function saveBalance(){
   update(ref(db,'users/'+currentUser),{balance:balance});
 }
@@ -174,7 +180,7 @@ window.deposit = ()=>{
     status: "pending"
   });
 
-  alert("Deposit sent");
+  alert("Deposit request sent");
 };
 
 // WITHDRAW
@@ -187,13 +193,14 @@ window.withdraw = ()=>{
     status: "pending"
   });
 
-  alert("Withdraw sent");
+  alert("Withdraw request sent");
 };
 
-// START AUTO LOOP
+// START LOOP
 window.onload = ()=>{
   startAutoGame();
 };
+
 </script>
 
 </body>
