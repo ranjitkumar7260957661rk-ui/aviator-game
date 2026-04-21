@@ -1,144 +1,80 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Aviator Demo</title>
-  <style>
-    body { background:#111; color:#fff; text-align:center; font-family:Arial; }
-    input, button { padding:10px; margin:5px; }
-    .page { display:none; }
-  </style>
-</head>
+const express = require("express");
+const app = express();
+app.use(express.json());
 
-<body>
-
-<div id="login" class="page" style="display:block;">
-  <h2>Login</h2>
-  <input id="mobile" placeholder="Mobile"><br>
-  <input id="pass" placeholder="Password"><br>
-  <button onclick="login()">Login</button>
-</div>
-
-<div id="game" class="page">
-  <h3>Balance: ₹<span id="bal">0</span></h3>
-  <h1 id="multi">1.00x</h1>
-
-  <input id="bet" placeholder="Bet"><br>
-  <button onclick="startGame()">Start</button>
-  <button onclick="cashout()">Cashout</button>
-
-  <h4 id="status"></h4>
-</div>
-
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-app.js";
-import { getDatabase, ref, set, get, child, update, onValue } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-database.js";
-
-const firebaseConfig = {
-  apiKey: "APNI_REAL_KEY_DAL",
-  authDomain: "avaitior-game.firebaseapp.com",
-  databaseURL: "https://avaitior-game-default-rtdb.firebaseio.com",
-  projectId: "avaitior-game"
+let users = {
+  "user1": { balance: 1000 }
 };
 
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
+let requests = [];
 
-let currentUser = localStorage.getItem("user") || "";
-let balance = 0;
+// 🎮 Spin API
+app.post("/spin", (req, res) => {
+  let { user, bet } = req.body;
 
-function showPage(p){
-  document.querySelectorAll('.page').forEach(x=>x.style.display='none');
-  document.getElementById(p).style.display='block';
-}
+  if (!users[user] || users[user].balance < bet) {
+    return res.json({ error: "Low balance" });
+  }
 
-// AUTO LOGIN
-if(currentUser){
-  showPage('game');
-  loadUser();
-}
+  users[user].balance -= bet;
 
-window.login = ()=>{
-  let m = mobile.value;
-  let p = pass.value;
+  let rand = Math.random() * 100;
+  let multiplier = 0;
 
-  if(!m || !p) return alert("Fill details");
+  if (rand < 35) multiplier = 0;
+  else if (rand < 60) multiplier = 0.5;
+  else if (rand < 80) multiplier = 1;
+  else if (rand < 92) multiplier = 2;
+  else if (rand < 98) multiplier = 5;
+  else multiplier = 10;
 
-  currentUser = m;
-  localStorage.setItem("user", m);
+  let win = bet * multiplier;
+  users[user].balance += win;
 
-  get(child(ref(db),'users/'+m)).then(snap=>{
-    if(snap.exists()){
-      if(snap.val().password === p){
-        loadUser();
-        showPage('game');
-      } else alert("Wrong password");
-    } else {
-      set(ref(db,'users/'+m),{password:p,balance:100});
-      loadUser();
-      showPage('game');
-    }
+  res.json({
+    multiplier,
+    win,
+    balance: users[user].balance
   });
-};
+});
 
-function loadUser(){
-  onValue(ref(db,'users/'+currentUser), snap=>{
-    if(snap.exists()){
-      balance = snap.val().balance || 0;
-      bal.innerText = balance;
-    }
+// 💸 Deposit Request
+app.post("/deposit", (req, res) => {
+  let { user, amount } = req.body;
+
+  requests.push({
+    type: "deposit",
+    user,
+    amount,
+    status: "pending"
   });
-}
 
-// GAME
-let running=false, multi=1, crash;
+  res.json({ msg: "Deposit request submitted" });
+});
 
-window.startGame = ()=>{
-  let bet = Number(betInput.value);
-  if(bet<=0 || bet>balance) return alert("Invalid");
+// 💰 Withdraw Request
+app.post("/withdraw", (req, res) => {
+  let { user, amount } = req.body;
 
-  balance -= bet;
-  save();
+  if (users[user].balance < amount) {
+    return res.json({ error: "Low balance" });
+  }
 
-  multi=1;
-  crash = Math.random()*5+1;
-  running=true;
-};
+  users[user].balance -= amount;
 
-function gameLoop(){
-  setInterval(()=>{
-    if(!running) return;
+  requests.push({
+    type: "withdraw",
+    user,
+    amount,
+    status: "pending"
+  });
 
-    multi+=0.1;
-    multiEl.innerText = multi.toFixed(2)+"x";
+  res.json({ msg: "Withdraw request submitted" });
+});
 
-    if(multi>=crash){
-      running=false;
-      status.innerText="Crashed";
-    }
-  },100);
-}
+// 👤 Balance check
+app.get("/balance/:user", (req, res) => {
+  res.json(users[req.params.user]);
+});
 
-window.cashout = ()=>{
-  if(!running) return;
-
-  let bet = Number(betInput.value);
-  let win = bet * multi;
-
-  balance += win;
-  save();
-
-  running=false;
-  status.innerText="Win ₹"+Math.floor(win);
-};
-
-function save(){
-  update(ref(db,'users/'+currentUser),{balance:balance});
-}
-
-window.onload = ()=>{
-  gameLoop();
-};
-</script>
-
-</body>
-</html>
+app.listen(3000, () => console.log("Server running on 3000"));
