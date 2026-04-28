@@ -11,13 +11,15 @@
 
 <body>
 
-<div id="login" class="page">
+<!-- LOGIN -->
+<div id="login" class="page" style="display:block;">
   <h2>Login</h2>
   <input id="mobile" placeholder="Mobile"><br>
   <input id="pass" placeholder="Password" type="password"><br>
   <button onclick="login()">Login</button>
 </div>
 
+<!-- GAME -->
 <div id="game" class="page">
   <h3>Balance: ₹<span id="bal">0</span></h3>
   <h1 id="multi">1.00x</h1>
@@ -42,11 +44,16 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
+// ELEMENTS
+let multiEl = document.getElementById("multi");
+let statusEl = document.getElementById("status");
+let balEl = document.getElementById("bal");
 
+// DATA
 let currentUser = localStorage.getItem("user") || "";
 let balance = 0;
 
-// PAGE
+// PAGE SWITCH
 function showPage(p){
   document.querySelectorAll('.page').forEach(x=>x.style.display='none');
   document.getElementById(p).style.display='block';
@@ -62,8 +69,8 @@ if(currentUser){
 
 // LOGIN
 window.login = ()=>{
-  let m = mobile.value;
-  let p = pass.value;
+  let m = document.getElementById("mobile").value;
+  let p = document.getElementById("pass").value;
 
   if(!m || !p) return alert("Enter details");
 
@@ -84,17 +91,17 @@ window.login = ()=>{
   });
 };
 
-// LOAD USER (REALTIME SAVE)
+// LOAD USER (REALTIME)
 function loadUser(){
   onValue(ref(db,'users/'+currentUser), snap=>{
     if(snap.exists()){
       balance = snap.val().balance || 0;
-      bal.innerText = balance;
+      balEl.innerText = balance;
     }
   });
 }
 
-// 🔥 24/7 GAME LOOP
+// GAME LOOP (24/7)
 let multi = 1;
 let crash = 2;
 let running = false;
@@ -102,29 +109,28 @@ let userBet = 0;
 
 function startRound(){
   multi = 1;
-  crash = Math.random()*5+1;
+  crash = Math.random()*5 + 1;
   running = true;
-  status.innerText = "";
+  statusEl.innerText = "";
 
   let interval = setInterval(()=>{
     if(!running) return;
 
     multi += 0.1;
-    multiEl.innerText = multi.toFixed(2)+"x";
+    multiEl.innerText = multi.toFixed(2) + "x";
 
     if(multi >= crash){
       running = false;
       clearInterval(interval);
-      status.innerText = "Crashed!";
+      statusEl.innerText = "Crashed!";
       userBet = 0;
 
-      // NEXT ROUND AUTO START (24/7)
-      setTimeout(startRound, 2000);
+      setTimeout(startRound, 2000); // auto next round
     }
   },200);
 }
 
-// AUTO START GAME LOOP
+// AUTO START
 startRound();
 
 // BET
@@ -132,21 +138,23 @@ window.betGame = ()=>{
   let b = Number(document.getElementById("bet").value);
   if(b<=0 || b>balance) return alert("Invalid");
 
-  if(running && userBet==0){
+  if(running && userBet === 0){
     userBet = b;
     balance -= b;
+    balEl.innerText = balance;
     saveBalance();
   }
 };
 
 // CASHOUT
 window.cashout = ()=>{
-  if(running && userBet>0){
+  if(running && userBet > 0){
     let win = userBet * multi;
     balance += Math.floor(win);
+    balEl.innerText = balance;
     saveBalance();
     userBet = 0;
-    status.innerText = "You Win!";
+    statusEl.innerText = "You Win!";
   }
 };
 
@@ -156,7 +164,6 @@ function saveBalance(){
     balance: balance
   });
 }
-
 </script>
 
 </body>
