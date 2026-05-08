@@ -2,169 +2,458 @@
 <html>
 <head>
   <title>Aviator Demo</title>
+
   <style>
-    body { font-family: Arial; background:#111; color:#fff; text-align:center; }
-    input, button { padding:10px; margin:5px; }
-    .page { display:none; }
+    body{
+      margin:0;
+      background:#111;
+      color:white;
+      font-family:Arial;
+      text-align:center;
+    }
+
+    .page{
+      display:none;
+      padding-top:40px;
+    }
+
+    input,button{
+      padding:12px;
+      margin:5px;
+      border:none;
+      border-radius:6px;
+    }
+
+    button{
+      background:#ff9800;
+      color:white;
+      font-weight:bold;
+    }
+
+    #multi{
+      font-size:55px;
+      margin:30px 0;
+      color:#00ff90;
+    }
+
+    .box{
+      background:#1e1e1e;
+      width:90%;
+      max-width:350px;
+      margin:auto;
+      padding:20px;
+      border-radius:12px;
+    }
   </style>
 </head>
 
 <body>
 
 <!-- LOGIN -->
-<div id="login" class="page" style="display:block;">
-  <h2>Login</h2>
-  <input id="mobile" placeholder="Mobile"><br>
-  <input id="pass" placeholder="Password" type="password"><br>
-  <button onclick="login()">Login</button>
+<div id="login" class="page">
+
+  <div class="box">
+    <h2>Login</h2>
+
+    <input id="mobile" placeholder="Mobile Number"><br>
+
+    <input id="pass"
+    type="password"
+    placeholder="Password"><br>
+
+    <button onclick="login()">Login</button>
+  </div>
+
 </div>
 
 <!-- GAME -->
 <div id="game" class="page">
-  <h3>Balance: ₹<span id="bal">0</span></h3>
-  <h1 id="multi">1.00x</h1>
 
-  <input id="bet" placeholder="Bet"><br>
+  <h2>
+    Balance:
+    ₹<span id="bal">0</span>
+  </h2>
+
+  <div id="multi">1.00x</div>
+
+  <input id="bet" placeholder="Bet Amount"><br>
+
   <button onclick="betGame()">Place Bet</button>
+
   <button onclick="cashout()">Cashout</button>
 
-  <h4 id="status"></h4>
+  <br><br>
+
+  <button onclick="addCoins()">
+    Add Demo Coins
+  </button>
+
+  <button onclick="showPage('deposit')">
+    Deposit
+  </button>
+
+  <button onclick="showPage('withdraw')">
+    Withdraw
+  </button>
+
+  <h3 id="status"></h3>
+
+</div>
+
+<!-- DEPOSIT -->
+<div id="deposit" class="page">
+
+  <div class="box">
+
+    <h2>Deposit</h2>
+
+    <p>UPI:</p>
+
+    <h3>7260957661@ybl</h3>
+
+    <p>Demo Only</p>
+
+    <button onclick="showPage('game')">
+      Back
+    </button>
+
+  </div>
+
+</div>
+
+<!-- WITHDRAW -->
+<div id="withdraw" class="page">
+
+  <div class="box">
+
+    <h2>Withdraw</h2>
+
+    <input id="wamount"
+    placeholder="Amount"><br>
+
+    <button onclick="fakeWithdraw()">
+      Submit
+    </button>
+
+    <br>
+
+    <button onclick="showPage('game')">
+      Back
+    </button>
+
+  </div>
+
 </div>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-app.js";
-import { getDatabase, ref, set, get, child, update, onValue } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-database.js";
+
+import {
+initializeApp
+}
+from
+"https://www.gstatic.com/firebasejs/12.12.0/firebase-app.js";
+
+import {
+getDatabase,
+ref,
+set,
+get,
+child,
+update,
+onValue
+}
+from
+"https://www.gstatic.com/firebasejs/12.12.0/firebase-database.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDCYEveGXPy1nORiyyeyIjsbfcqEy4iaVg",
-  authDomain: "avaitior-game.firebaseapp.com",
-  databaseURL: "https://avaitior-game-default-rtdb.firebaseio.com",
-  projectId: "avaitior-game"
+
+  apiKey:
+  "AIzaSyDCYEveGXPy1nORiyyeyIjsbfcqEy4iaVg",
+
+  authDomain:
+  "avaitior-game.firebaseapp.com",
+
+  databaseURL:
+  "https://avaitior-game-default-rtdb.firebaseio.com",
+
+  projectId:
+  "avaitior-game"
+
 };
 
 const app = initializeApp(firebaseConfig);
+
 const db = getDatabase(app);
 
-// ELEMENTS
-let multiEl = document.getElementById("multi");
-let statusEl = document.getElementById("status");
-let balEl = document.getElementById("bal");
+let currentUser =
+localStorage.getItem("user") || "";
 
-// DATA
-let currentUser = localStorage.getItem("user") || "";
 let balance = 0;
 
-// PAGE SWITCH
-function showPage(p){
-  document.querySelectorAll('.page').forEach(x=>x.style.display='none');
-  document.getElementById(p).style.display='block';
-}
+let multi = 1;
+
+let running = false;
+
+let userBet = 0;
+
+let crashPoint = 2;
+
+// PAGE
+window.showPage = (p)=>{
+
+  document
+  .querySelectorAll(".page")
+  .forEach(x=>x.style.display="none");
+
+  document
+  .getElementById(p)
+  .style.display="block";
+};
 
 // AUTO LOGIN
 if(currentUser){
-  showPage('game');
+
+  showPage("game");
+
   loadUser();
+
 }else{
-  showPage('login');
+
+  showPage("login");
 }
 
 // LOGIN
 window.login = ()=>{
-  let m = document.getElementById("mobile").value;
-  let p = document.getElementById("pass").value;
 
-  if(!m || !p) return alert("Enter details");
+  let m =
+  document.getElementById("mobile").value;
+
+  let p =
+  document.getElementById("pass").value;
+
+  if(!m || !p){
+
+    alert("Enter details");
+
+    return;
+  }
 
   currentUser = m;
-  localStorage.setItem("user", m);
 
-  get(child(ref(db), 'users/'+m)).then(snap=>{
+  localStorage.setItem("user",m);
+
+  get(child(ref(db),"users/"+m))
+  .then(snap=>{
+
     if(snap.exists()){
-      if(snap.val().password === p){
+
+      let data = snap.val();
+
+      if(data.password == p){
+
+        showPage("game");
+
         loadUser();
-        showPage('game');
-      } else alert("Wrong password");
-    } else {
-      set(ref(db,'users/'+m),{password:p,balance:1000});
+
+      }else{
+
+        alert("Wrong Password");
+      }
+
+    }else{
+
+      set(
+      ref(db,"users/"+m),
+      {
+        password:p,
+        balance:1000
+      });
+
+      showPage("game");
+
       loadUser();
-      showPage('game');
     }
   });
 };
 
-// LOAD USER (REALTIME)
+// LOAD USER
 function loadUser(){
-  onValue(ref(db,'users/'+currentUser), snap=>{
+
+  onValue(
+  ref(db,"users/"+currentUser),
+
+  (snap)=>{
+
     if(snap.exists()){
-      balance = snap.val().balance || 0;
-      balEl.innerText = balance;
+
+      balance =
+      snap.val().balance || 0;
+
+      document
+      .getElementById("bal")
+      .innerText = balance;
     }
   });
 }
 
-// GAME LOOP (24/7)
-let multi = 1;
-let crash = 2;
-let running = false;
-let userBet = 0;
+// SAVE
+function saveBalance(){
 
-function startRound(){
-  multi = 1;
-  crash = Math.random()*5 + 1;
-  running = true;
-  statusEl.innerText = "";
+  update(
+  ref(db,"users/"+currentUser),
 
-  let interval = setInterval(()=>{
-    if(!running) return;
-
-    multi += 0.1;
-    multiEl.innerText = multi.toFixed(2) + "x";
-
-    if(multi >= crash){
-      running = false;
-      clearInterval(interval);
-      statusEl.innerText = "Crashed!";
-      userBet = 0;
-
-      setTimeout(startRound, 2000); // auto next round
-    }
-  },200);
+  {
+    balance:balance
+  });
 }
 
-// AUTO START
+// DEMO COINS
+window.addCoins = ()=>{
+
+  balance += 500;
+
+  saveBalance();
+
+  alert("500 Demo Coins Added");
+};
+
+// GAME LOOP
+function startRound(){
+
+  multi = 1;
+
+  running = true;
+
+  userBet = 0;
+
+  crashPoint =
+  Math.random()*5 + 1;
+
+  document
+  .getElementById("status")
+  .innerText = "";
+
+  let interval =
+  setInterval(()=>{
+
+    if(!running){
+
+      clearInterval(interval);
+
+      return;
+    }
+
+    multi += 0.05;
+
+    document
+    .getElementById("multi")
+    .innerText =
+    multi.toFixed(2)+"x";
+
+    if(multi >= crashPoint){
+
+      running = false;
+
+      document
+      .getElementById("status")
+      .innerText = "Crashed!";
+
+      setTimeout(()=>{
+
+        startRound();
+
+      },2000);
+    }
+
+  },100);
+}
+
+// START GAME
 startRound();
 
 // BET
 window.betGame = ()=>{
-  let b = Number(document.getElementById("bet").value);
-  if(b<=0 || b>balance) return alert("Invalid");
 
-  if(running && userBet === 0){
-    userBet = b;
-    balance -= b;
-    balEl.innerText = balance;
-    saveBalance();
+  let amount =
+  Number(
+  document.getElementById("bet").value
+  );
+
+  if(amount<=0){
+
+    alert("Invalid Bet");
+
+    return;
   }
+
+  if(amount > balance){
+
+    alert("Low Balance");
+
+    return;
+  }
+
+  if(userBet > 0){
+
+    alert("Already Bet");
+
+    return;
+  }
+
+  userBet = amount;
+
+  balance -= amount;
+
+  saveBalance();
+
+  document
+  .getElementById("status")
+  .innerText = "Bet Placed";
 };
 
 // CASHOUT
 window.cashout = ()=>{
-  if(running && userBet > 0){
-    let win = userBet * multi;
-    balance += Math.floor(win);
-    balEl.innerText = balance;
-    saveBalance();
-    userBet = 0;
-    statusEl.innerText = "You Win!";
+
+  if(!running){
+
+    alert("Round Crashed");
+
+    return;
   }
+
+  if(userBet<=0){
+
+    alert("No Bet");
+
+    return;
+  }
+
+  let win =
+  Math.floor(userBet * multi);
+
+  balance += win;
+
+  saveBalance();
+
+  document
+  .getElementById("status")
+  .innerText =
+  "You Win ₹"+win;
+
+  userBet = 0;
 };
 
-// SAVE
-function saveBalance(){
-  update(ref(db,'users/'+currentUser),{
-    balance: balance
-  });
-}
+// FAKE WITHDRAW
+window.fakeWithdraw = ()=>{
+
+  let amt =
+  document.getElementById("wamount").value;
+
+  alert(
+  "Withdraw Request Submitted: ₹"+amt
+  );
+};
+
 </script>
 
 </body>
