@@ -1,292 +1,192 @@
-6      }
+<!DOCTYPE html>
+<html>
+<head>
+<title>Aviator Clean Pro</title>
 
-    }else{
+<style>
+body{
+margin:0;
+background:#0a0a0a;
+color:white;
+font-family:Arial;
+text-align:center;
+}
 
-      set(ref(db,'users/'+m),{
+h1{font-size:60px;color:#00ff99;}
 
-        password:p,
+#plane{
+position:absolute;
+bottom:50px;
+left:50px;
+width:50px;
+transition:0.2s;
+}
 
-        balance:0
+button,input{
+padding:10px;
+margin:5px;
+}
+</style>
+</head>
 
-      }).then(()=>{
+<body>
 
-        ";
+<h2>AVIATOR</h2>
 
-        document.getElementById("gamePage").style.display="block";
+<h1 id="multi">1.00x</h1>
 
-        loadUser();
+<img id="plane" src="https://i.imgur.com/3Q9QZ5p.png">
 
-      });
+<br>
 
-    }
+<input id="betAmount" placeholder="Bet">
 
-  });
+<br>
 
+<button onclick="placeBet()">BET</button>
+<button onclick="cashout()">CASHOUT</button>
+
+<h3 id="status"></h3>
+<h3 id="timer"></h3>
+
+<audio id="crashSound" src="https://actions.google.com/sounds/v1/cartoon/pop.ogg"></audio>
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-app.js";
+import { getDatabase, ref, set, update, onValue, get, child }
+from "https://www.gstatic.com/firebasejs/12.12.0/firebase-database.js";
+
+const firebaseConfig = {
+apiKey: "AIzaSyDCYEveGXPy1nORiyyeyIjsbfcqEy4iaVg",
+authDomain: "avaitior-game.firebaseapp.com",
+databaseURL: "https://avaitior-game-default-rtdb.firebaseio.com",
+projectId: "avaitior-game"
 };
 
-/* LOAD USER */
-
-function loadUser(){
-
-  onValue(ref(db,'users/'+currentUser),(snap)=>{
-
-    if(snap.exists()){
-
-      let data = snap.val();
-
-      balance = Number(data.balance || 0);
-
-      document.getElementById("balance").innerText = balance;
-
-    }
-
-  });
-
-}
-
-/* SAVE BALANCE */
-
-function saveBalance(){
-
-  update(ref(db,'users/'+currentUser),{
-
-    balance:Number(balance)
-
-  });
-
-}
-
-/* LOGOUT */
-
-window.logout = ()=>{
-
-  localStorage.removeItem("user");
-
-  location.reload();
-
-};
-
-/* GAME */
-
-let adminLoopStarted = false;
-
-function startMainGame(){
-
-  if(adminLoopStarted) return;
-
-  adminLoopStarted = true;
-
-  let multiplier = 1;
-
-  let crashPoint = (Math.random()*5)+1;
-
-  set(ref(db,'game'),{
-
-    multiplier:1,
-
-    crashed:false,
-
-    timer:0
-
-  });
-
-  let loop = setInterval(()=>{
-
-    multiplier += 0.10;
-
-    multiplier = Number(multiplier.toFixed(2));
-
-    update(ref(db,'game'),{
-
-      multiplier:multiplier
-
-    });
-
-    if(multiplier >= crashPoint){
-
-      clearInterval(loop);
-
-      document.getElementById("crashSound").play();
-
-      update(ref(db,'game'),{
-
-        crashed:true
-
-      });
-
-      let t = 3;
-
-      update(ref(db,'game'),{
-
-        timer:t
-
-      });
-
-      let timerLoop = setInterval(()=>{
-
-        t--;
-
-        update(ref(db,'game'),{
-
-          timer:t
-
-        });
-
-        if(t<=0){
-
-          clearInterval(timerLoop);
-
-          adminLoopStarted=false;
-
-          startMainGame();
-
-        }
-
-      },1000);
-
-    }
-
-  },200);
-
-}
-
-startMainGame();
-
-/* WATCH GAME */
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+let currentUser = localStorage.getItem("user");
+let balance = 1000;
+let userBet = 0;
 
 let currentMultiplier = 1;
-
 let crashed = false;
 
+/* GAME ENGINE */
+function startGame(){
+let m = 1;
+let crashPoint = (Math.random()*4)+1.5;
+
+update(ref(db,'game'),{
+multiplier:1,
+crashed:false,
+timer:0
+});
+
+let loop = setInterval(()=>{
+
+m += 0.05;
+m = Number(m.toFixed(2));
+
+update(ref(db,'game'),{
+multiplier:m
+});
+
+if(m >= crashPoint){
+clearInterval(loop);
+
+document.getElementById("crashSound").play();
+
+update(ref(db,'game'),{
+crashed:true,
+timer:3
+});
+
+let t = 3;
+
+let timer = setInterval(()=>{
+
+t--;
+
+update(ref(db,'game'),{timer:t});
+
+if(t<=0){
+clearInterval(timer);
+startGame();
+}
+
+},1000);
+}
+
+},120);
+}
+
+startGame();
+
+/* WATCH GAME */
 onValue(ref(db,'game'),(snap)=>{
+if(!snap.exists()) return;
 
-  if(snap.exists()){
+let g = snap.val();
 
-    let game = snap.val();
+currentMultiplier = g.multiplier || 1;
+crashed = g.crashed || false;
 
-    currentMultiplier = game.multiplier || 1;
+document.getElementById("multi").innerText =
+currentMultiplier.toFixed(2)+"x";
 
-    crashed = game.crashed || false;
+document.getElementById("timer").innerText =
+g.timer>0 ? "Next Round: "+g.timer : "";
 
-    let timer = game.timer || 0;
+let left = currentMultiplier * 40;
+let bottom = currentMultiplier * 10;
 
-    document.getElementById("multi").innerText =
-    currentMultiplier.toFixed(2)+"x";
+document.getElementById("plane").style.left = left+"px";
+document.getElementById("plane").style.bottom = bottom+"px";
 
-    document.getElementById("timer").innerText =
-    timer>0 ? "Next Round In "+timer : "";
-
-    /* STOP AFTER CRASH */
-
-    if(crashed){
-
-      document.getElementById("status").innerText =
-      "CRASHED";
-
-    }else{
-
-      document.getElementById("status").innerText =
-      "";
-
-    }
-
-    /* PLANE MOVE */
-
-    let left = currentMultiplier * 40;
-
-    let bottom = currentMultiplier * 15;
-
-    document.getElementById("plane").style.left =
-    left+"px";
-
-    document.getElementById("plane").style.bottom =
-    bottom+"px";
-
-  }
+if(crashed){
+document.getElementById("status").innerText="CRASHED";
+}else{
+document.getElementById("status").innerText="";
+}
 
 });
 
 /* BET */
+window.placeBet=()=>{
+let bet = Number(document.getElementById("betAmount").value);
 
-let userBet = 0;
+if(bet<=0) return alert("Invalid");
 
-window.placeBet = ()=>{
+if(bet>balance) return alert("Low balance");
 
-  let bet = Number(document.getElementById("betAmount").value);
+if(userBet>0) return alert("Already bet");
 
-  if(bet<=0){
+if(crashed) return alert("Wait next round");
 
-    alert("Invalid Bet");
-
-    return;
-
-  }
-
-  if(bet>balance){
-
-    alert("Low Balance");
-
-    return;
-
-  }
-
-  if(userBet>0){
-
-    alert("Already Bet");
-
-    return;
-
-  }
-
-  if(crashed){
-
-    alert("Wait Next Round");
-
-    return;
-
-  }
-
-  balance -= bet;
-
-  saveBalance();
-
-  userBet = bet;
-
+balance -= bet;
+userBet = bet;
 };
 
 /* CASHOUT */
+window.cashout=()=>{
+if(userBet<=0) return alert("No bet");
 
-window.cashout = ()=>{
+if(crashed){
+userBet=0;
+return alert("Crashed");
+}
 
-  if(userBet<=0){
+let win = Math.floor(userBet * currentMultiplier);
 
-    alert("No Bet");
+balance += win;
 
-    return;
+document.getElementById("status").innerText =
+"Won ₹"+win;
 
-  }
-
-  if(crashed){
-
-    alert("Round Crashed");
-
-    userBet = 0;
-
-    return;
-
-  }
-
-  let win = Math.floor(userBet * currentMultiplier);
-
-  balance += win;
-
-  saveBalance();
-
-  document.getElementById("status").innerText =
-  "You Won ₹"+win;
-
-  userBet = 0;
-
+userBet = 0;
 };
 
 </script>
