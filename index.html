@@ -98,7 +98,6 @@ button{
 
 #plane{
     font-size:50px;
-    transition:0.2s;
 }
 
 #multi{
@@ -107,7 +106,7 @@ button{
     margin-top:20px;
 }
 
-/* PAGES */
+/* POPUP */
 
 .popup{
     display:none;
@@ -119,10 +118,7 @@ button{
     width:320px;
     padding:20px;
     border-radius:15px;
-}
-
-.popup h2{
-    margin-top:0;
+    z-index:1000;
 }
 
 .small{
@@ -135,7 +131,7 @@ button{
 
 <body>
 
-<!-- LOGIN PAGE -->
+<!-- LOGIN -->
 
 <div id="loginPage">
 
@@ -149,7 +145,7 @@ button{
 
 </div>
 
-<!-- GAME PAGE -->
+<!-- GAME -->
 
 <div id="gamePage">
 
@@ -175,7 +171,7 @@ Balance ₹<span id="balance">0</span>
 
 </div>
 
-<!-- GAME -->
+<!-- GAME AREA -->
 
 <div class="gameArea">
 
@@ -205,7 +201,7 @@ Balance ₹<span id="balance">0</span>
 
 <h2>Deposit</h2>
 
-<p>UPI ID:</p>
+<p>UPI ID</p>
 
 <h3>7260957661@ybl</h3>
 
@@ -341,7 +337,7 @@ set(ref(db,'users/'+m),{
 
 password:p,
 
-balance:1000
+balance:0
 
 });
 
@@ -405,15 +401,23 @@ menu.style.left="0px";
 
 };
 
-/* POPUPS */
+/* POPUP */
 
 window.showDeposit = ()=>{
+
+document.getElementById("menu").style.left="-250px";
+
+document.getElementById("withdrawBox").style.display="none";
 
 document.getElementById("depositBox").style.display="block";
 
 };
 
 window.showWithdraw = ()=>{
+
+document.getElementById("menu").style.left="-250px";
+
+document.getElementById("depositBox").style.display="none";
 
 document.getElementById("withdrawBox").style.display="block";
 
@@ -424,6 +428,8 @@ window.closeAll = ()=>{
 document.getElementById("depositBox").style.display="none";
 
 document.getElementById("withdrawBox").style.display="none";
+
+document.getElementById("menu").style.left="-250px";
 
 };
 
@@ -440,8 +446,6 @@ location.reload();
 /* GAME */
 
 let multiplier = 1;
-
-let running = true;
 
 let userBet = 0;
 
