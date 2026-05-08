@@ -7,9 +7,10 @@
     body{
       margin:0;
       font-family:Arial;
-      background:#111;
+      background:linear-gradient(to bottom,#111,#000);
       color:white;
       text-align:center;
+      overflow:hidden;
     }
 
     .page{
@@ -21,12 +22,19 @@
       padding:12px;
       margin:5px;
       border:none;
-      border-radius:5px;
+      border-radius:8px;
+      font-size:16px;
+    }
+
+    input{
+      background:#222;
+      color:white;
     }
 
     button{
-      background:#00bcd4;
+      background:#ff9800;
       color:white;
+      font-weight:bold;
     }
 
     #topbar{
@@ -37,21 +45,52 @@
       align-items:center;
     }
 
-    h1{
-      font-size:60px;
+    #multi{
+      font-size:70px;
+      margin-top:100px;
       color:#00ff99;
-      margin-top:60px;
+      text-shadow:0 0 20px #00ff99;
+    }
+
+    #status{
+      font-size:24px;
+      margin-top:20px;
+      color:red;
+    }
+
+    #timer{
+      font-size:28px;
+      color:yellow;
+      margin-top:10px;
+    }
+
+    #plane{
+      font-size:50px;
+      position:absolute;
+      left:20px;
+      bottom:120px;
+      transition:0.2s linear;
     }
   </style>
 </head>
 
 <body>
 
+<!-- SOUND -->
+
+<audio id="bgSound" loop>
+  <source src="https://cdn.pixabay.com/audio/2022/03/15/audio_c8c8a73467.mp3">
+</audio>
+
+<audio id="crashSound">
+  <source src="https://cdn.pixabay.com/audio/2022/03/10/audio_270f49b4f9.mp3">
+</audio>
+
 <!-- LOGIN -->
 
 <div id="loginPage" class="page" style="display:block;">
 
-  <h2>Login</h2>
+  <h2>Realtime Aviator</h2>
 
   <input id="mobile" placeholder="Mobile Number"><br>
 
@@ -73,7 +112,11 @@
 
   </div>
 
+  <div id="plane">✈️</div>
+
   <h1 id="multi">1.00x</h1>
+
+  <div id="timer"></div>
 
   <input id="betAmount" placeholder="Bet Amount"><br>
 
@@ -100,8 +143,6 @@ import {
   onValue
 }
 from "https://www.gstatic.com/firebasejs/12.12.0/firebase-database.js";
-
-/* FIREBASE */
 
 const firebaseConfig = {
 
@@ -145,6 +186,8 @@ if(currentUser){
 
 window.login = ()=>{
 
+  document.getElementById("bgSound").play();
+
   let m = document.getElementById("mobile").value;
 
   let p = document.getElementById("password").value;
@@ -162,8 +205,6 @@ window.login = ()=>{
   localStorage.setItem("user",m);
 
   get(child(ref(db),'users/'+m)).then((snap)=>{
-
-    // OLD USER
 
     if(snap.exists()){
 
@@ -183,11 +224,7 @@ window.login = ()=>{
 
       }
 
-    }
-
-    // NEW USER
-
-    else{
+    }else{
 
       set(ref(db,'users/'+m),{
 
@@ -253,17 +290,9 @@ window.logout = ()=>{
 
 };
 
-/* ========================= */
-/* SAME GAME FOR EVERYONE */
-/* ========================= */
-
-/* ADMIN GAME LOOP */
+/* GAME */
 
 let adminLoopStarted = false;
-
-/*
-ONLY first user starts loop
-*/
 
 function startMainGame(){
 
@@ -279,9 +308,9 @@ function startMainGame(){
 
     multiplier:1,
 
-    running:true,
+    crashed:false,
 
-    crashed:false
+    timer:0
 
   });
 
@@ -289,9 +318,11 @@ function startMainGame(){
 
     multiplier += 0.10;
 
+    multiplier = Number(multiplier.toFixed(2));
+
     update(ref(db,'game'),{
 
-      multiplier:Number(multiplier.toFixed(2))
+      multiplier:multiplier
 
     });
 
@@ -299,21 +330,43 @@ function startMainGame(){
 
       clearInterval(loop);
 
+      document.getElementById("crashSound").play();
+
       update(ref(db,'game'),{
 
-        crashed:true,
-
-        running:false
+        crashed:true
 
       });
 
-      setTimeout(()=>{
+      let t = 3;
 
-        adminLoopStarted=false;
+      update(ref(db,'game'),{
 
-        startMainGame();
+        timer:t
 
-      },3000);
+      });
+
+      let timerLoop = setInterval(()=>{
+
+        t--;
+
+        update(ref(db,'game'),{
+
+          timer:t
+
+        });
+
+        if(t<=0){
+
+          clearInterval(timerLoop);
+
+          adminLoopStarted=false;
+
+          startMainGame();
+
+        }
+
+      },1000);
 
     }
 
@@ -321,11 +374,9 @@ function startMainGame(){
 
 }
 
-/* START MAIN GAME */
-
 startMainGame();
 
-/* WATCH SAME GAME */
+/* WATCH GAME */
 
 let currentMultiplier = 1;
 
@@ -341,8 +392,15 @@ onValue(ref(db,'game'),(snap)=>{
 
     crashed = game.crashed || false;
 
+    let timer = game.timer || 0;
+
     document.getElementById("multi").innerText =
     currentMultiplier.toFixed(2)+"x";
+
+    document.getElementById("timer").innerText =
+    timer>0 ? "Next Round In "+timer : "";
+
+    /* STOP AFTER CRASH */
 
     if(crashed){
 
@@ -355,6 +413,18 @@ onValue(ref(db,'game'),(snap)=>{
       "";
 
     }
+
+    /* PLANE MOVE */
+
+    let left = currentMultiplier * 40;
+
+    let bottom = currentMultiplier * 15;
+
+    document.getElementById("plane").style.left =
+    left+"px";
+
+    document.getElementById("plane").style.bottom =
+    bottom+"px";
 
   }
 
