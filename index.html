@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Aviator Demo</title>
+  <title>Realtime Aviator</title>
 
   <style>
     body{
@@ -29,45 +29,18 @@
       color:white;
     }
 
-    #menu{
-      position:fixed;
-      top:0;
-      left:-220px;
-      width:200px;
-      height:100%;
-      background:#222;
-      padding-top:40px;
-      transition:0.3s;
-    }
-
-    #menu button{
-      width:90%;
-      margin:10px;
-    }
-
     #topbar{
+      background:#000;
+      padding:10px;
       display:flex;
       justify-content:space-between;
       align-items:center;
-      padding:10px;
-      background:#000;
-    }
-
-    .popup{
-      display:none;
-      position:fixed;
-      top:50%;
-      left:50%;
-      transform:translate(-50%,-50%);
-      background:#222;
-      padding:20px;
-      border-radius:10px;
-      width:300px;
     }
 
     h1{
-      font-size:55px;
+      font-size:60px;
       color:#00ff99;
+      margin-top:60px;
     }
   </style>
 </head>
@@ -94,9 +67,9 @@
 
   <div id="topbar">
 
-    <button onclick="openMenu()">☰</button>
-
     <h3>Balance ₹<span id="balance">0</span></h3>
+
+    <button onclick="logout()">Logout</button>
 
   </div>
 
@@ -112,62 +85,6 @@
 
 </div>
 
-<!-- MENU -->
-
-<div id="menu">
-
-  <button onclick="showDeposit()">Deposit</button>
-
-  <button onclick="showWithdraw()">Withdraw</button>
-
-  <button onclick="logout()">Logout</button>
-
-</div>
-
-<!-- DEPOSIT -->
-
-<div id="depositBox" class="popup">
-
-  <h2>Deposit</h2>
-
-  <p>Minimum ₹500</p>
-
-  <p>UPI: 7260957661@ybl</p>
-
-  <input id="depAmount" placeholder="Amount"><br>
-
-  <input id="utr" placeholder="UTR Number"><br>
-
-  <button onclick="submitDeposit()">Submit</button>
-
-  <button onclick="closeAll()">Close</button>
-
-</div>
-
-<!-- WITHDRAW -->
-
-<div id="withdrawBox" class="popup">
-
-  <h2>Withdraw</h2>
-
-  <p>Minimum ₹500</p>
-
-  <input id="wname" placeholder="Name"><br>
-
-  <input id="bank" placeholder="Bank Name"><br>
-
-  <input id="acc" placeholder="Account Number"><br>
-
-  <input id="ifsc" placeholder="IFSC"><br>
-
-  <input id="wamount" placeholder="Amount"><br>
-
-  <button onclick="submitWithdraw()">Submit</button>
-
-  <button onclick="closeAll()">Close</button>
-
-</div>
-
 <script type="module">
 
 import { initializeApp }
@@ -180,7 +97,6 @@ import {
   get,
   child,
   update,
-  push,
   onValue
 }
 from "https://www.gstatic.com/firebasejs/12.12.0/firebase-database.js";
@@ -295,7 +211,7 @@ window.login = ()=>{
 
 };
 
-/* REALTIME USER LOAD */
+/* LOAD USER */
 
 function loadUser(){
 
@@ -327,46 +243,6 @@ function saveBalance(){
 
 }
 
-/* MENU */
-
-window.openMenu = ()=>{
-
-  let menu = document.getElementById("menu");
-
-  if(menu.style.left=="0px"){
-
-    menu.style.left="-220px";
-
-  }else{
-
-    menu.style.left="0px";
-
-  }
-
-};
-
-window.closeAll = ()=>{
-
-  document.getElementById("menu").style.left="-220px";
-
-  document.getElementById("depositBox").style.display="none";
-
-  document.getElementById("withdrawBox").style.display="none";
-
-};
-
-window.showDeposit = ()=>{
-
-  document.getElementById("depositBox").style.display="block";
-
-};
-
-window.showWithdraw = ()=>{
-
-  document.getElementById("withdrawBox").style.display="block";
-
-};
-
 /* LOGOUT */
 
 window.logout = ()=>{
@@ -377,49 +253,67 @@ window.logout = ()=>{
 
 };
 
-/* GAME */
+/* ========================= */
+/* SAME GAME FOR EVERYONE */
+/* ========================= */
 
-let multiplier = 1;
+/* ADMIN GAME LOOP */
 
-let crashed = false;
+let adminLoopStarted = false;
 
-let userBet = 0;
+/*
+ONLY first user starts loop
+*/
 
-function startRound(){
+function startMainGame(){
 
-  multiplier = 1;
+  if(adminLoopStarted) return;
 
-  crashed = false;
+  adminLoopStarted = true;
 
-  document.getElementById("status").innerText = "";
+  let multiplier = 1;
 
   let crashPoint = (Math.random()*5)+1;
 
+  set(ref(db,'game'),{
+
+    multiplier:1,
+
+    running:true,
+
+    crashed:false
+
+  });
+
   let loop = setInterval(()=>{
-
-    if(crashed){
-
-      clearInterval(loop);
-
-      return;
-
-    }
 
     multiplier += 0.10;
 
-    document.getElementById("multi").innerText =
-    multiplier.toFixed(2)+"x";
+    update(ref(db,'game'),{
+
+      multiplier:Number(multiplier.toFixed(2))
+
+    });
 
     if(multiplier >= crashPoint){
 
-      crashed = true;
+      clearInterval(loop);
 
-      document.getElementById("status").innerText =
-      "CRASHED!";
+      update(ref(db,'game'),{
 
-      userBet = 0;
+        crashed:true,
 
-      setTimeout(startRound,2000);
+        running:false
+
+      });
+
+      setTimeout(()=>{
+
+        adminLoopStarted=false;
+
+        startMainGame();
+
+      },3000);
 
     }
 
@@ -427,9 +321,48 @@ function startRound(){
 
 }
 
-startRound();
+/* START MAIN GAME */
+
+startMainGame();
+
+/* WATCH SAME GAME */
+
+let currentMultiplier = 1;
+
+let crashed = false;
+
+onValue(ref(db,'game'),(snap)=>{
+
+  if(snap.exists()){
+
+    let game = snap.val();
+
+    currentMultiplier = game.multiplier || 1;
+
+    crashed = game.crashed || false;
+
+    document.getElementById("multi").innerText =
+    currentMultiplier.toFixed(2)+"x";
+
+    if(crashed){
+
+      document.getElementById("status").innerText =
+      "CRASHED";
+
+    }else{
+
+      document.getElementById("status").innerText =
+      "";
+
+    }
+
+  }
+
+});
 
 /* BET */
+
+let userBet = 0;
 
 window.placeBet = ()=>{
 
@@ -459,6 +392,14 @@ window.placeBet = ()=>{
 
   }
 
+  if(crashed){
+
+    alert("Wait Next Round");
+
+    return;
+
+  }
+
   balance -= bet;
 
   saveBalance();
@@ -483,11 +424,13 @@ window.cashout = ()=>{
 
     alert("Round Crashed");
 
+    userBet = 0;
+
     return;
 
   }
 
-  let win = Math.floor(userBet * multiplier);
+  let win = Math.floor(userBet * currentMultiplier);
 
   balance += win;
 
@@ -497,70 +440,6 @@ window.cashout = ()=>{
   "You Won ₹"+win;
 
   userBet = 0;
-
-};
-
-/* DEPOSIT */
-
-window.submitDeposit = ()=>{
-
-  let amount = document.getElementById("depAmount").value;
-
-  let utr = document.getElementById("utr").value;
-
-  push(ref(db,'deposits'),{
-
-    user:currentUser,
-
-    amount:Number(amount),
-
-    utr:utr,
-
-    status:"pending"
-
-  });
-
-  alert("Deposit Request Sent");
-
-  closeAll();
-
-};
-
-/* WITHDRAW */
-
-window.submitWithdraw = ()=>{
-
-  let name = document.getElementById("wname").value;
-
-  let bank = document.getElementById("bank").value;
-
-  let acc = document.getElementById("acc").value;
-
-  let ifsc = document.getElementById("ifsc").value;
-
-  let amount = document.getElementById("wamount").value;
-
-  push(ref(db,'withdraws'),{
-
-    user:currentUser,
-
-    name:name,
-
-    bank:bank,
-
-    account:acc,
-
-    ifsc:ifsc,
-
-    amount:Number(amount),
-
-    status:"pending"
-
-  });
-
-  alert("Withdraw Request Sent");
-
-  closeAll();
 
 };
 
