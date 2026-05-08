@@ -219,6 +219,10 @@ if(currentUser){
 
   loadUser();
 
+}else{
+
+  document.getElementById("loginPage").style.display="block";
+
 }
 
 /* LOGIN */
@@ -243,13 +247,11 @@ window.login = ()=>{
 
   get(child(ref(db),'users/'+m)).then((snap)=>{
 
-    // USER EXISTS
+    // OLD USER
 
     if(snap.exists()){
 
       let data = snap.val();
-
-      // PASSWORD CHECK
 
       if(data.password == p){
 
@@ -293,7 +295,7 @@ window.login = ()=>{
 
 };
 
-/* LOAD USER */
+/* REALTIME USER LOAD */
 
 function loadUser(){
 
@@ -403,7 +405,7 @@ function startRound(){
 
     }
 
-    multiplier += 0.1;
+    multiplier += 0.10;
 
     document.getElementById("multi").innerText =
     multiplier.toFixed(2)+"x";
