@@ -305,7 +305,7 @@ function loadUser(){
 
       let data = snap.val();
 
-      balance = Number(data.balance) || 0;
+      balance = Number(data.balance || 0);
 
       document.getElementById("balance").innerText = balance;
 
