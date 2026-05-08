@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Aviator Single Clean</title>
+<title>Aviator Final Fix</title>
 
 <style>
 body{
@@ -93,7 +93,6 @@ transition:0.1s linear;
 <button onclick="cashout()">CASHOUT</button>
 
 <h3 id="status"></h3>
-<h3 id="timer"></h3>
 </div>
 
 <!-- MENU -->
@@ -103,11 +102,19 @@ transition:0.1s linear;
 <button onclick="logout()">Logout</button>
 </div>
 
-<!-- DEPOSIT -->
+<!-- DEPOSIT (FIXED + UPI ADDED) -->
 <div id="depositBox" class="popup">
 <h3>Deposit</h3>
+
+<p style="color:#00ff99;font-size:18px;">
+UPI ID: <b>7260957661@ybl</b>
+</p>
+
+<p>Minimum ₹500</p>
+
 <input id="depAmount" placeholder="Amount"><br>
-<input id="utr" placeholder="UTR"><br>
+<input id="utr" placeholder="UTR Number"><br>
+
 <button onclick="submitDeposit()">Submit</button>
 <button onclick="closeAll()">Close</button>
 </div>
@@ -216,7 +223,7 @@ localStorage.removeItem("user");
 location.reload();
 };
 
-/* 🚀 SINGLE GAME ENGINE (ONLY ONE LOOP) */
+/* GAME (SINGLE ENGINE FIXED) */
 function startGame(){
 
 let multiplier = 1;
@@ -283,6 +290,7 @@ push(ref(db,'deposits'),{
 user:currentUser,
 amount:Number(depAmount.value),
 utr:utr.value,
+upi:"7260957661@ybl",
 status:"pending"
 });
 alert("Deposit sent");
