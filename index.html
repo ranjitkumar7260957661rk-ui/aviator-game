@@ -1,246 +1,3 @@
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>Aviator Demo</title>
-
-<style>
-
-body{
-    margin:0;
-    font-family:Arial;
-    background:#0f0f0f;
-    color:white;
-    text-align:center;
-}
-
-/* LOGIN */
-
-#loginPage{
-    padding-top:120px;
-}
-
-input{
-    width:250px;
-    padding:12px;
-    margin:8px;
-    border:none;
-    border-radius:8px;
-    font-size:16px;
-}
-
-button{
-    padding:12px 20px;
-    border:none;
-    border-radius:8px;
-    font-size:16px;
-    cursor:pointer;
-    margin:5px;
-}
-
-.mainBtn{
-    background:orange;
-    color:white;
-}
-
-/* GAME */
-
-#gamePage{
-    display:none;
-}
-
-.topBar{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    padding:15px;
-    background:#1b1b1b;
-}
-
-.menuBtn{
-    font-size:25px;
-    cursor:pointer;
-}
-
-.balance{
-    font-size:20px;
-    font-weight:bold;
-}
-
-/* MENU */
-
-#menu{
-    position:fixed;
-    left:-250px;
-    top:0;
-    width:220px;
-    height:100%;
-    background:#1d1d1d;
-    transition:0.3s;
-    padding-top:40px;
-    z-index:999;
-}
-
-#menu button{
-    width:180px;
-    margin:10px;
-    background:#333;
-    color:white;
-}
-
-/* GAME AREA */
-
-.gameArea{
-    margin-top:60px;
-}
-
-#plane{
-    font-size:50px;
-}
-
-#multi{
-    font-size:55px;
-    font-weight:bold;
-    margin-top:20px;
-}
-
-/* POPUP */
-
-.popup{
-    display:none;
-    position:fixed;
-    top:50%;
-    left:50%;
-    transform:translate(-50%,-50%);
-    background:#1f1f1f;
-    width:320px;
-    padding:20px;
-    border-radius:15px;
-    z-index:1000;
-}
-
-.small{
-    color:#aaa;
-    font-size:14px;
-}
-
-</style>
-</head>
-
-<body>
-
-<!-- LOGIN -->
-
-<div id="loginPage">
-
-<h1>AVIATOR</h1>
-
-<input id="mobile" placeholder="Mobile Number"><br>
-
-<input id="password" type="password" placeholder="Password"><br>
-
-<button class="mainBtn" onclick="login()">LOGIN</button>
-
-</div>
-
-<!-- GAME -->
-
-<div id="gamePage">
-
-<div class="topBar">
-
-<div class="menuBtn" onclick="openMenu()">☰</div>
-
-<div class="balance">
-Balance ₹<span id="balance">0</span>
-</div>
-
-</div>
-
-<!-- MENU -->
-
-<div id="menu">
-
-<button onclick="showDeposit()">Deposit</button>
-
-<button onclick="showWithdraw()">Withdraw</button>
-
-<button onclick="logout()">Logout</button>
-
-</div>
-
-<!-- GAME AREA -->
-
-<div class="gameArea">
-
-<div id="plane">✈️</div>
-
-<div id="multi">1.00x</div>
-
-<br>
-
-<input id="betAmount" placeholder="Enter Bet">
-
-<br>
-
-<button class="mainBtn" onclick="placeBet()">BET</button>
-
-<button onclick="cashout()">CASHOUT</button>
-
-<h3 id="status"></h3>
-
-</div>
-
-</div>
-
-<!-- DEPOSIT -->
-
-<div id="depositBox" class="popup">
-
-<h2>Deposit</h2>
-
-<p>UPI ID</p>
-
-<h3>7260957661@ybl</h3>
-
-<p class="small">Minimum Deposit ₹500</p>
-
-<input id="depAmount" placeholder="Amount">
-
-<input id="utr" placeholder="UTR Number">
-
-<button class="mainBtn" onclick="submitDeposit()">Submit</button>
-
-<button onclick="closeAll()">Back</button>
-
-</div>
-
-<!-- WITHDRAW -->
-
-<div id="withdrawBox" class="popup">
-
-<h2>Withdraw</h2>
-
-<p class="small">Minimum Withdraw ₹500</p>
-
-<input id="wname" placeholder="Name">
-
-<input id="bank" placeholder="Bank Name">
-
-<input id="acc" placeholder="Account Number">
-
-<input id="ifsc" placeholder="IFSC Code">
-
-<input id="wamount" placeholder="Amount">
-
-<button class="mainBtn" onclick="submitWithdraw()">Submit</button>
-
-<button onclick="closeAll()">Back</button>
-
-</div>
-
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-app.js";
@@ -319,11 +76,12 @@ if(snap.exists()){
 
 if(snap.val().password == p){
 
-loadUser();
-
 document.getElementById("loginPage").style.display="none";
 
 document.getElementById("gamePage").style.display="block";
+
+/* REALTIME LOAD */
+loadUser();
 
 }else{
 
@@ -339,13 +97,16 @@ password:p,
 
 balance:0
 
-});
-
-loadUser();
+}).then(()=>{
 
 document.getElementById("loginPage").style.display="none";
 
 document.getElementById("gamePage").style.display="block";
+
+/* REALTIME LOAD */
+loadUser();
+
+});
 
 }
 
@@ -353,7 +114,7 @@ document.getElementById("gamePage").style.display="block";
 
 };
 
-/* LOAD USER */
+/* REALTIME USER LOAD */
 
 function loadUser(){
 
@@ -361,7 +122,11 @@ onValue(ref(db,'users/'+currentUser),(snap)=>{
 
 if(snap.exists()){
 
-balance = snap.val().balance || 0;
+let data = snap.val();
+
+/* BALANCE AUTO UPDATE */
+
+balance = Number(data.balance) || 0;
 
 document.getElementById("balance").innerText = balance;
 
@@ -377,7 +142,7 @@ function saveBalance(){
 
 update(ref(db,'users/'+currentUser),{
 
-balance:balance
+balance:Number(balance)
 
 });
 
@@ -586,7 +351,7 @@ push(ref(db,'deposits'),{
 
 user:currentUser,
 
-amount:amount,
+amount:Number(amount),
 
 utr:utr,
 
@@ -634,7 +399,7 @@ account:acc,
 
 ifsc:ifsc,
 
-amount:amount,
+amount:Number(amount),
 
 status:"pending"
 
@@ -647,6 +412,3 @@ closeAll();
 };
 
 </script>
-
-</body>
-</html>
