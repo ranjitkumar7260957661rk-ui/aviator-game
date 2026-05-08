@@ -102,24 +102,29 @@ transition:0.1s linear;
 <button onclick="logout()">Logout</button>
 </div>
 
-<!-- DEPOSIT (FIXED + UPI ADDED) -->
+<!-- DEPOSIT (FIXED) -->
 <div id="depositBox" class="popup">
-<h3>Deposit</h3>
 
+<h2>Deposit</h2>
+
+<!-- UPI FIXED -->
 <p style="color:#00ff99;font-size:18px;">
 UPI ID: <b>7260957661@ybl</b>
 </p>
 
-<p>Minimum ₹500</p>
+<!-- MINIMUM FIXED -->
+<p style="color:#ffcc00;font-size:16px;">
+Minimum Deposit: ₹500
+</p>
 
-<input id="depAmount" placeholder="Amount"><br>
+<input id="depAmount" placeholder="Enter Amount"><br>
 <input id="utr" placeholder="UTR Number"><br>
 
 <button onclick="submitDeposit()">Submit</button>
 <button onclick="closeAll()">Close</button>
 </div>
 
-<!-- WITHDRAW -->
+<!-- WITHDRAW (OK SAME) -->
 <div id="withdrawBox" class="popup">
 <h3>Withdraw</h3>
 <input id="wname" placeholder="Name"><br>
@@ -223,7 +228,7 @@ localStorage.removeItem("user");
 location.reload();
 };
 
-/* GAME (SINGLE ENGINE FIXED) */
+/* GAME */
 function startGame(){
 
 let multiplier = 1;
@@ -284,15 +289,24 @@ status.innerText = "Won ₹"+win;
 userBet = 0;
 };
 
-/* DEPOSIT */
+/* DEPOSIT FIXED */
 window.submitDeposit=()=>{
+
+let amount = Number(depAmount.value);
+
+if(amount < 500){
+alert("Minimum deposit is ₹500");
+return;
+}
+
 push(ref(db,'deposits'),{
 user:currentUser,
-amount:Number(depAmount.value),
+amount:amount,
 utr:utr.value,
 upi:"7260957661@ybl",
 status:"pending"
 });
+
 alert("Deposit sent");
 closeAll();
 };
