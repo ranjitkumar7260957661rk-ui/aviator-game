@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Aviator Clean Final</title>
+<title>Aviator Single Clean</title>
 
 <style>
 body{
@@ -57,10 +57,10 @@ width:300px;
 
 #plane{
 position:absolute;
-bottom:50px;
-left:50px;
+bottom:60px;
+left:60px;
 width:50px;
-transition:0.2s;
+transition:0.1s linear;
 }
 </style>
 </head>
@@ -145,7 +145,12 @@ let currentUser = localStorage.getItem("user") || "";
 let balance = 0;
 let userBet = 0;
 let crashed = false;
-let multiplier = 1;
+
+/* ELEMENTS */
+const plane = document.getElementById("plane");
+const multi = document.getElementById("multi");
+const status = document.getElementById("status");
+const balanceEl = document.getElementById("balance");
 
 /* LOGIN */
 window.login = ()=>{
@@ -177,7 +182,7 @@ gamePage.style.display="block";
 loadUser();
 }
 
-/* LOAD USER */
+/* LOAD */
 function loadUser(){
 onValue(ref(db,'users/'+currentUser),(snap)=>{
 if(snap.exists()){
@@ -211,30 +216,34 @@ localStorage.removeItem("user");
 location.reload();
 };
 
-/* GAME ENGINE */
+/* 🚀 SINGLE GAME ENGINE (ONLY ONE LOOP) */
 function startGame(){
-multiplier = 1;
+
+let multiplier = 1;
 crashed = false;
 status.innerText = "";
 
 let crashPoint = (Math.random()*4)+1.5;
 
-let loop=setInterval(()=>{
+let loop = setInterval(()=>{
 
-multiplier += 0.05;
+multiplier += 0.04;
+
 multi.innerText = multiplier.toFixed(2)+"x";
 
-plane.style.left = (multiplier*40)+"px";
-plane.style.bottom = (multiplier*10)+"px";
+plane.style.left = (multiplier*35)+"px";
+plane.style.bottom = (multiplier*12)+"px";
 
-if(multiplier>=crashPoint){
+if(multiplier >= crashPoint){
 clearInterval(loop);
-crashed=true;
-status.innerText="CRASH 💥";
+crashed = true;
+status.innerText = "CRASH 💥";
 
 setTimeout(startGame,2000);
 }
+
 },120);
+
 }
 
 startGame();
@@ -258,7 +267,7 @@ window.cashout=()=>{
 if(!userBet) return alert("No bet");
 if(crashed) return alert("Crashed");
 
-let win = Math.floor(userBet*multiplier);
+let win = Math.floor(userBet * parseFloat(multi.innerText));
 
 balance += win;
 save();
@@ -276,7 +285,7 @@ amount:Number(depAmount.value),
 utr:utr.value,
 status:"pending"
 });
-alert("Sent");
+alert("Deposit sent");
 closeAll();
 };
 
@@ -291,7 +300,7 @@ ifsc:ifsc.value,
 amount:Number(wamount.value),
 status:"pending"
 });
-alert("Sent");
+alert("Withdraw sent");
 closeAll();
 };
 
