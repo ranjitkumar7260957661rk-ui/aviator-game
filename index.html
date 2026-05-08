@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Aviator Final Fix</title>
+<title>Aviator Full Admin System</title>
 
 <style>
 body{
@@ -41,8 +41,6 @@ padding-top:40px;
 
 #menu button{width:90%;margin:10px;}
 
-h1{font-size:55px;color:#00ff99;}
-
 .popup{
 display:none;
 position:fixed;
@@ -55,12 +53,21 @@ border-radius:10px;
 width:300px;
 }
 
+h1{color:#00ff99;font-size:50px;}
+
 #plane{
 position:absolute;
 bottom:60px;
 left:60px;
 width:50px;
 transition:0.1s linear;
+}
+
+.adminBox{
+display:none;
+background:#111;
+padding:20px;
+margin-top:20px;
 }
 </style>
 </head>
@@ -99,41 +106,44 @@ transition:0.1s linear;
 <div id="menu">
 <button onclick="showDeposit()">Deposit</button>
 <button onclick="showWithdraw()">Withdraw</button>
+<button onclick="showAdmin()">Admin Panel</button>
 <button onclick="logout()">Logout</button>
 </div>
 
-<!-- DEPOSIT (FIXED) -->
+<!-- DEPOSIT -->
 <div id="depositBox" class="popup">
+<h3>Deposit</h3>
 
-<h2>Deposit</h2>
+<p style="color:#00ff99">UPI: 7260957661@ybl</p>
+<p>Minimum ₹500</p>
 
-<!-- UPI FIXED -->
-<p style="color:#00ff99;font-size:18px;">
-UPI ID: <b>7260957661@ybl</b>
-</p>
-
-<!-- MINIMUM FIXED -->
-<p style="color:#ffcc00;font-size:16px;">
-Minimum Deposit: ₹500
-</p>
-
-<input id="depAmount" placeholder="Enter Amount"><br>
-<input id="utr" placeholder="UTR Number"><br>
+<input id="depAmount" placeholder="Amount"><br>
+<input id="utr" placeholder="UTR"><br>
 
 <button onclick="submitDeposit()">Submit</button>
 <button onclick="closeAll()">Close</button>
 </div>
 
-<!-- WITHDRAW (OK SAME) -->
+<!-- WITHDRAW -->
 <div id="withdrawBox" class="popup">
 <h3>Withdraw</h3>
+
 <input id="wname" placeholder="Name"><br>
 <input id="bank" placeholder="Bank"><br>
 <input id="acc" placeholder="Account"><br>
 <input id="ifsc" placeholder="IFSC"><br>
 <input id="wamount" placeholder="Amount"><br>
+
 <button onclick="submitWithdraw()">Submit</button>
 <button onclick="closeAll()">Close</button>
+</div>
+
+<!-- ADMIN PANEL -->
+<div id="adminPanel" class="popup" style="width:90%;max-height:80%;overflow:auto;">
+<h2>Admin Panel</h2>
+<button onclick="closeAll()">Close</button>
+
+<div id="depositList"></div>
 </div>
 
 <script type="module">
@@ -157,12 +167,6 @@ let currentUser = localStorage.getItem("user") || "";
 let balance = 0;
 let userBet = 0;
 let crashed = false;
-
-/* ELEMENTS */
-const plane = document.getElementById("plane");
-const multi = document.getElementById("multi");
-const status = document.getElementById("status");
-const balanceEl = document.getElementById("balance");
 
 /* LOGIN */
 window.login = ()=>{
@@ -194,7 +198,7 @@ gamePage.style.display="block";
 loadUser();
 }
 
-/* LOAD */
+/* LOAD USER */
 function loadUser(){
 onValue(ref(db,'users/'+currentUser),(snap)=>{
 if(snap.exists()){
@@ -218,11 +222,13 @@ window.closeAll=()=>{
 menu.style.left="-220px";
 depositBox.style.display="none";
 withdrawBox.style.display="none";
+adminPanel.style.display="none";
 };
 
 window.showDeposit=()=>depositBox.style.display="block";
 window.showWithdraw=()=>withdrawBox.style.display="block";
 
+/* LOGOUT */
 window.logout=()=>{
 localStorage.removeItem("user");
 location.reload();
@@ -237,7 +243,7 @@ status.innerText = "";
 
 let crashPoint = (Math.random()*4)+1.5;
 
-let loop = setInterval(()=>{
+let loop=setInterval(()=>{
 
 multiplier += 0.04;
 
@@ -250,7 +256,6 @@ if(multiplier >= crashPoint){
 clearInterval(loop);
 crashed = true;
 status.innerText = "CRASH 💥";
-
 setTimeout(startGame,2000);
 }
 
@@ -285,28 +290,17 @@ balance += win;
 save();
 
 status.innerText = "Won ₹"+win;
-
 userBet = 0;
 };
 
-/* DEPOSIT FIXED */
+/* DEPOSIT */
 window.submitDeposit=()=>{
-
-let amount = Number(depAmount.value);
-
-if(amount < 500){
-alert("Minimum deposit is ₹500");
-return;
-}
-
 push(ref(db,'deposits'),{
 user:currentUser,
-amount:amount,
+amount:Number(depAmount.value),
 utr:utr.value,
-upi:"7260957661@ybl",
 status:"pending"
 });
-
 alert("Deposit sent");
 closeAll();
 };
@@ -324,6 +318,79 @@ status:"pending"
 });
 alert("Withdraw sent");
 closeAll();
+};
+
+/* ADMIN PANEL */
+window.showAdmin=()=>{
+
+let pass = prompt("Admin Password");
+
+if(pass!="admin123"){
+alert("Wrong admin password");
+return;
+}
+
+adminPanel.style.display="block";
+
+loadDeposits();
+};
+
+/* LOAD DEPOSITS */
+function loadDeposits(){
+
+onValue(ref(db,'deposits'),(snap)=>{
+
+let html = "";
+
+snap.forEach((child)=>{
+
+let d = child.val();
+let key = child.key;
+
+html += `
+<div style="background:#222;margin:10px;padding:10px;">
+<p>User: ${d.user}</p>
+<p>Amount: ₹${d.amount}</p>
+<p>UTR: ${d.utr}</p>
+<p>Status: ${d.status}</p>
+
+<button onclick="approve('${key}','${d.user}',${d.amount})">Approve</button>
+<button onclick="reject('${key}')">Reject</button>
+</div>
+`;
+
+});
+
+depositList.innerHTML = html;
+
+});
+
+}
+
+/* APPROVE */
+window.approve = async (key,user,amount)=>{
+
+// update deposit status
+update(ref(db,'deposits/'+key),{status:"approved"});
+
+// get user balance
+let snap = await get(ref(db,'users/'+user));
+
+if(snap.exists()){
+let bal = snap.val().balance || 0;
+
+update(ref(db,'users/'+user),{
+balance: bal + amount
+});
+}
+
+alert("Approved");
+};
+
+/* REJECT */
+window.reject = (key)=>{
+update(ref(db,'deposits/'+key),{status:"rejected"});
+alert("Rejected");
 };
 
 </script>
