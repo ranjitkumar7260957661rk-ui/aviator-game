@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Aviator Clean Game</title>
+<title>Aviator Clean Final</title>
 
 <style>
 body{
@@ -10,6 +10,7 @@ font-family:Arial;
 background:#111;
 color:white;
 text-align:center;
+overflow:hidden;
 }
 
 .page{display:none;padding:20px;}
@@ -76,12 +77,11 @@ width:300px;
 
 <input id="betAmount" placeholder="Bet Amount"><br>
 
-<button onclick="bet()">BET</button>
+<button onclick="placeBet()">BET</button>
 <button onclick="cashout()">CASHOUT</button>
 
 <h3 id="status"></h3>
 
-<br>
 <button onclick="openDeposit()">Deposit</button>
 <button onclick="openWithdraw()">Withdraw</button>
 
@@ -92,10 +92,10 @@ width:300px;
 <h3>Deposit</h3>
 
 <p><b>UPI:</b> 7260957661@ybl</p>
-<p>Min ₹500</p>
+<p>Minimum ₹500</p>
 
 <input id="depAmount" placeholder="Amount"><br>
-<input id="utr" placeholder="UTR"><br>
+<input id="utr" placeholder="UTR Number"><br>
 
 <button onclick="deposit()">Submit</button>
 <button onclick="closeAll()">Close</button>
@@ -117,10 +117,16 @@ width:300px;
 
 <script>
 
+/* ELEMENTS SAFE INIT */
+const balanceEl = document.getElementById("balance");
+const multiEl = document.getElementById("multi");
+const statusEl = document.getElementById("status");
+const plane = document.getElementById("plane");
+
 /* STATE */
 let user="";
 let balance=0;
-let betAmount=0;
+let bet=0;
 let running=false;
 
 /* LOGIN */
@@ -154,15 +160,15 @@ startGame();
 function loadUser(){
 let b = localStorage.getItem("bal_"+user);
 balance = b ? Number(b) : 0;
-document.getElementById("balance").innerText = balance;
+balanceEl.innerText = balance;
 }
 
 function save(){
 localStorage.setItem("bal_"+user,balance);
-document.getElementById("balance").innerText = balance;
+balanceEl.innerText = balance;
 }
 
-/* GAME (ONLY 1 LOOP) */
+/* GAME SAFE LOOP */
 function startGame(){
 
 if(running) return;
@@ -171,19 +177,19 @@ running=true;
 let m=1;
 let crash=(Math.random()*4)+1.5;
 
-status.innerText="";
+statusEl.innerText="";
 
 let loop=setInterval(()=>{
 
 m+=0.02;
 
-multi.innerText=m.toFixed(2)+"x";
+multiEl.innerText=m.toFixed(2)+"x";
 plane.style.left=(m*25)+"px";
 
 if(m>=crash){
 clearInterval(loop);
 running=false;
-status.innerText="CRASH 💥";
+statusEl.innerText="CRASH 💥";
 setTimeout(startGame,2000);
 }
 
@@ -191,55 +197,62 @@ setTimeout(startGame,2000);
 }
 
 /* BET */
-function bet(){
+function placeBet(){
 let b=Number(betAmount.value);
 
 if(b<=0) return alert("Invalid");
 if(b>balance) return alert("Low balance");
-if(betAmount.dataset.lock=="1") return alert("Already bet");
+if(bet>0) return alert("Already bet");
 
 balance-=b;
+bet=b;
 save();
-
-betAmount.dataset.lock="1";
 }
 
 /* CASHOUT */
 function cashout(){
-let b=Number(betAmount.value);
+if(!bet) return alert("No bet");
 
-if(!b) return alert("No bet");
-
-let win=Math.floor(b*parseFloat(multi.innerText));
+let win=Math.floor(bet*parseFloat(multiEl.innerText));
 
 balance+=win;
 save();
 
-status.innerText="Won ₹"+win;
+statusEl.innerText="Won ₹"+win;
 
-betAmount.dataset.lock="0";
+bet=0;
 }
 
-/* DEPOSIT */
+/* DEPOSIT FIX */
 function deposit(){
-if(Number(depAmount.value)<500){
-alert("Min ₹500");
+
+let amt = Number(depAmount.value);
+
+if(amt < 500){
+alert("Min ₹500 required");
 return;
 }
 
-alert("Deposit request sent\nUPI: 7260957661@ybl");
+alert("Deposit Request Sent\nUPI: 7260957661@ybl");
+
 closeAll();
 }
 
-/* WITHDRAW */
+/* WITHDRAW FIX */
 function withdraw(){
-alert("Withdraw request sent");
+alert("Withdraw Request Sent");
 closeAll();
 }
 
 /* UI */
-function openDeposit(){depositBox.style.display="block";}
-function openWithdraw(){withdrawBox.style.display="block";}
+function openDeposit(){
+depositBox.style.display="block";
+}
+
+function openWithdraw(){
+withdrawBox.style.display="block";
+}
+
 function closeAll(){
 depositBox.style.display="none";
 withdrawBox.style.display="none";
@@ -248,4 +261,4 @@ withdrawBox.style.display="none";
 </script>
 
 </body>
-</html>
+</html>l
