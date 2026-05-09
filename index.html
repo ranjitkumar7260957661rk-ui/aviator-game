@@ -1,567 +1,244 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Aviator Demo</title>
+<title>Game</title>
 
-  <style>
-    body{
-      margin:0;
-      font-family:Arial;
-      background:#111;
-      color:white;
-      text-align:center;
-    }
+<style>
+body{
+margin:0;
+font-family:Arial;
+background:#0b0b0b;
+color:white;
+text-align:center;
+}
 
-    .page{
-      display:none;
-      padding:20px;
-    }
+.page{display:none;padding:20px;}
 
-    input,button{
-      padding:12px;
-      margin:5px;
-      border:none;
-      border-radius:5px;
-    }
+input,button{
+padding:10px;
+margin:5px;
+border:none;
+border-radius:5px;
+}
 
-    button{
-      background:#00bcd4;
-      color:white;
-    }
+button{
+background:#00e5ff;
+color:black;
+font-weight:bold;
+cursor:pointer;
+}
 
-    #menu{
-      position:fixed;
-      top:0;
-      left:-220px;
-      width:200px;
-      height:100%;
-      background:#222;
-      padding-top:40px;
-      transition:0.3s;
-    }
+#multi{
+font-size:50px;
+color:#00ff99;
+}
 
-    #menu button{
-      width:90%;
-      margin:10px;
-    }
+#plane{
+position:absolute;
+bottom:80px;
+left:60px;
+width:50px;
+}
 
-    #topbar{
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      padding:10px;
-      background:#000;
-    }
-
-    .popup{
-      display:none;
-      position:fixed;
-      top:50%;
-      left:50%;
-      transform:translate(-50%,-50%);
-      background:#222;
-      padding:20px;
-      border-radius:10px;
-      width:300px;
-    }
-
-    h1{
-      font-size:55px;
-      color:#00ff99;
-    }
-  </style>
+.popup{
+display:none;
+position:fixed;
+top:50%;
+left:50%;
+transform:translate(-50%,-50%);
+background:#222;
+padding:20px;
+border-radius:10px;
+width:300px;
+}
+</style>
 </head>
 
 <body>
 
 <!-- LOGIN -->
-
 <div id="loginPage" class="page" style="display:block;">
-
-  <h2>Login</h2>
-
-  <input id="mobile" placeholder="Mobile Number"><br>
-
-  <input id="password" type="password" placeholder="Password"><br>
-
-  <button onclick="login()">Login</button>
-
+<h2>Login</h2>
+<input id="mobile" placeholder="Mobile"><br>
+<input id="password" type="password" placeholder="Password"><br>
+<button onclick="login()">Login</button>
 </div>
 
 <!-- GAME -->
-
 <div id="gamePage" class="page">
 
-  <div id="topbar">
+<h3>Balance ₹<span id="balance">0</span></h3>
 
-    <button onclick="openMenu()">☰</button>
+<div id="multi">1.00x</div>
 
-    <h3>Balance ₹<span id="balance">0</span></h3>
-
-  </div>
-
-  <h1 id="multi">1.00x</h1>
-
-  <input id="betAmount" placeholder="Bet Amount"><br>
-
-  <button onclick="placeBet()">BET</button>
-
-  <button onclick="cashout()">CASHOUT</button>
-
-  <h3 id="status"></h3>
-
+<div style="height:120px;position:relative;">
+<img id="plane" src="https://i.imgur.com/3Q9QZ5p.png">
 </div>
 
-<!-- MENU -->
+<input id="betAmount" placeholder="Bet"><br>
 
-<div id="menu">
+<button onclick="placeBet()">BET</button>
+<button onclick="cashout()">CASHOUT</button>
 
-  <button onclick="showDeposit()">Deposit</button>
+<h3 id="status"></h3>
 
-  <button onclick="showWithdraw()">Withdraw</button>
-
-  <button onclick="logout()">Logout</button>
-
+<button onclick="showDeposit()">Deposit</button>
+<button onclick="showWithdraw()">Withdraw</button>
 </div>
 
 <!-- DEPOSIT -->
-
 <div id="depositBox" class="popup">
+<h3>Deposit</h3>
 
-  <h2>Deposit</h2>
+<p><b>UPI:</b> 7260957661@ybl</p>
+<p>Minimum ₹500</p>
 
-  <p>Minimum ₹500</p>
+<input id="depAmount" placeholder="Amount"><br>
+<input id="utr" placeholder="UTR"><br>
 
-  <p>UPI: 7260957661@ybl</p>
-
-  <input id="depAmount" placeholder="Amount"><br>
-
-  <input id="utr" placeholder="UTR Number"><br>
-
-  <button onclick="submitDeposit()">Submit</button>
-
-  <button onclick="closeAll()">Close</button>
-
+<button onclick="submitDeposit()">Submit</button>
+<button onclick="closeAll()">Close</button>
 </div>
 
 <!-- WITHDRAW -->
-
 <div id="withdrawBox" class="popup">
+<h3>Withdraw</h3>
 
-  <h2>Withdraw</h2>
+<input id="wname" placeholder="Name"><br>
+<input id="bank" placeholder="Bank"><br>
+<input id="acc" placeholder="Account"><br>
+<input id="ifsc" placeholder="IFSC"><br>
+<input id="wamount" placeholder="Amount"><br>
 
-  <p>Minimum ₹500</p>
-
-  <input id="wname" placeholder="Name"><br>
-
-  <input id="bank" placeholder="Bank Name"><br>
-
-  <input id="acc" placeholder="Account Number"><br>
-
-  <input id="ifsc" placeholder="IFSC"><br>
-
-  <input id="wamount" placeholder="Amount"><br>
-
-  <button onclick="submitWithdraw()">Submit</button>
-
-  <button onclick="closeAll()">Close</button>
-
+<button onclick="submitWithdraw()">Submit</button>
+<button onclick="closeAll()">Close</button>
 </div>
 
-<script type="module">
+<script>
 
-import { initializeApp }
-from "https://www.gstatic.com/firebasejs/12.12.0/firebase-app.js";
-
-import {
-  getDatabase,
-  ref,
-  set,
-  get,
-  child,
-  update,
-  push,
-  onValue
-}
-from "https://www.gstatic.com/firebasejs/12.12.0/firebase-database.js";
-
-/* FIREBASE */
-
-const firebaseConfig = {
-
-  apiKey: "AIzaSyDCYEveGXPy1nORiyyeyIjsbfcqEy4iaVg",
-
-  authDomain: "avaitior-game.firebaseapp.com",
-
-  databaseURL: "https://avaitior-game-default-rtdb.firebaseio.com",
-
-  projectId: "avaitior-game"
-
-};
-
-const app = initializeApp(firebaseConfig);
-
-const db = getDatabase(app);
-
-/* USER */
-
-let currentUser = localStorage.getItem("user") || "";
-
-let balance = 0;
-
-/* AUTO LOGIN */
-
-if(currentUser){
-
-  document.getElementById("loginPage").style.display="none";
-
-  document.getElementById("gamePage").style.display="block";
-
-  loadUser();
-
-}else{
-
-  document.getElementById("loginPage").style.display="block";
-
-}
+let user="";
+let balance=0;
+let bet=0;
+let running=false;
 
 /* LOGIN */
+window.login=()=>{
+user = mobile.value;
 
-window.login = ()=>{
+if(!user || !password.value){
+alert("Fill details");
+return;
+}
 
-  let m = document.getElementById("mobile").value;
+localStorage.setItem("user",user);
 
-  let p = document.getElementById("password").value;
+loginPage.style.display="none";
+gamePage.style.display="block";
 
-  if(!m || !p){
-
-    alert("Enter Details");
-
-    return;
-
-  }
-
-  currentUser = m;
-
-  localStorage.setItem("user",m);
-
-  get(child(ref(db),'users/'+m)).then((snap)=>{
-
-    // OLD USER
-
-    if(snap.exists()){
-
-      let data = snap.val();
-
-      if(data.password == p){
-
-        document.getElementById("loginPage").style.display="none";
-
-        document.getElementById("gamePage").style.display="block";
-
-        loadUser();
-
-      }else{
-
-        alert("Wrong Password");
-
-      }
-
-    }
-
-    // NEW USER
-
-    else{
-
-      set(ref(db,'users/'+m),{
-
-        password:p,
-
-        balance:0
-
-      }).then(()=>{
-
-        document.getElementById("loginPage").style.display="none";
-
-        document.getElementById("gamePage").style.display="block";
-
-        loadUser();
-
-      });
-
-    }
-
-  });
-
+loadUser();
+startGame();
 };
 
-/* REALTIME USER LOAD */
+/* AUTO LOGIN */
+if(localStorage.getItem("user")){
+user = localStorage.getItem("user");
+loginPage.style.display="none";
+gamePage.style.display="block";
+loadUser();
+startGame();
+}
 
+/* USER */
 function loadUser(){
-
-  onValue(ref(db,'users/'+currentUser),(snap)=>{
-
-    if(snap.exists()){
-
-      let data = snap.val();
-
-      balance = Number(data.balance || 0);
-
-      document.getElementById("balance").innerText = balance;
-
-    }
-
-  });
-
+let data = localStorage.getItem("balance_"+user);
+balance = data ? Number(data) : 0;
+document.getElementById("balance").innerText = balance;
 }
 
-/* SAVE BALANCE */
-
-function saveBalance(){
-
-  update(ref(db,'users/'+currentUser),{
-
-    balance:Number(balance)
-
-  });
-
+function save(){
+localStorage.setItem("balance_"+user,balance);
+document.getElementById("balance").innerText = balance;
 }
-
-/* MENU */
-
-window.openMenu = ()=>{
-
-  let menu = document.getElementById("menu");
-
-  if(menu.style.left=="0px"){
-
-    menu.style.left="-220px";
-
-  }else{
-
-    menu.style.left="0px";
-
-  }
-
-};
-
-window.closeAll = ()=>{
-
-  document.getElementById("menu").style.left="-220px";
-
-  document.getElementById("depositBox").style.display="none";
-
-  document.getElementById("withdrawBox").style.display="none";
-
-};
-
-window.showDeposit = ()=>{
-
-  document.getElementById("depositBox").style.display="block";
-
-};
-
-window.showWithdraw = ()=>{
-
-  document.getElementById("withdrawBox").style.display="block";
-
-};
-
-/* LOGOUT */
-
-window.logout = ()=>{
-
-  localStorage.removeItem("user");
-
-  location.reload();
-
-};
 
 /* GAME */
+function startGame(){
 
-let multiplier = 1;
+if(running) return;
+running=true;
 
-let crashed = false;
+let m=1;
+let crash=(Math.random()*4)+1.5;
 
-let userBet = 0;
+status.innerText="";
 
-function startRound(){
+let loop=setInterval(()=>{
 
-  multiplier = 1;
+m+=0.02;
+multi.innerText=m.toFixed(2)+"x";
+plane.style.left=(m*25)+"px";
 
-  crashed = false;
-
-  document.getElementById("status").innerText = "";
-
-  let crashPoint = (Math.random()*5)+1;
-
-  let loop = setInterval(()=>{
-
-    if(crashed){
-
-      clearInterval(loop);
-
-      return;
-
-    }
-
-    multiplier += 0.10;
-
-    document.getElementById("multi").innerText =
-    multiplier.toFixed(2)+"x";
-
-    if(multiplier >= crashPoint){
-
-      crashed = true;
-
-      document.getElementById("status").innerText =
-      "CRASHED!";
-
-      userBet = 0;
-
-      setTimeout(startRound,2000);
-
-    }
-
-  },200);
-
+if(m>=crash){
+clearInterval(loop);
+running=false;
+status.innerText="CRASH 💥";
+setTimeout(startGame,2000);
 }
 
-startRound();
+},120);
+}
 
 /* BET */
+window.placeBet=()=>{
+let b=Number(betAmount.value);
 
-window.placeBet = ()=>{
+if(b<=0) return alert("Invalid");
+if(b>balance) return alert("Low balance");
+if(bet>0) return alert("Already bet");
 
-  let bet = Number(document.getElementById("betAmount").value);
-
-  if(bet<=0){
-
-    alert("Invalid Bet");
-
-    return;
-
-  }
-
-  if(bet>balance){
-
-    alert("Low Balance");
-
-    return;
-
-  }
-
-  if(userBet>0){
-
-    alert("Already Bet");
-
-    return;
-
-  }
-
-  balance -= bet;
-
-  saveBalance();
-
-  userBet = bet;
-
+balance-=b;
+bet=b;
+save();
 };
 
 /* CASHOUT */
+window.cashout=()=>{
+if(!bet) return alert("No bet");
 
-window.cashout = ()=>{
+let win=Math.floor(bet*parseFloat(multi.innerText));
 
-  if(userBet<=0){
+balance+=win;
+save();
 
-    alert("No Bet");
+status.innerText="Won ₹"+win;
 
-    return;
-
-  }
-
-  if(crashed){
-
-    alert("Round Crashed");
-
-    return;
-
-  }
-
-  let win = Math.floor(userBet * multiplier);
-
-  balance += win;
-
-  saveBalance();
-
-  document.getElementById("status").innerText =
-  "You Won ₹"+win;
-
-  userBet = 0;
-
+bet=0;
 };
 
 /* DEPOSIT */
+window.submitDeposit=()=>{
+if(Number(depAmount.value)<500){
+alert("Min ₹500");
+return;
+}
 
-window.submitDeposit = ()=>{
+alert("Deposit Request Sent\nUPI: 7260957661@ybl");
 
-  let amount = document.getElementById("depAmount").value;
-
-  let utr = document.getElementById("utr").value;
-
-  push(ref(db,'deposits'),{
-
-    user:currentUser,
-
-    amount:Number(amount),
-
-    utr:utr,
-
-    status:"pending"
-
-  });
-
-  alert("Deposit Request Sent");
-
-  closeAll();
-
+closeAll();
 };
 
 /* WITHDRAW */
+window.submitWithdraw=()=>{
+alert("Withdraw Request Sent");
 
-window.submitWithdraw = ()=>{
+closeAll();
+};
 
-  let name = document.getElementById("wname").value;
-
-  let bank = document.getElementById("bank").value;
-
-  let acc = document.getElementById("acc").value;
-
-  let ifsc = document.getElementById("ifsc").value;
-
-  let amount = document.getElementById("wamount").value;
-
-  push(ref(db,'withdraws'),{
-
-    user:currentUser,
-
-    name:name,
-
-    bank:bank,
-
-    account:acc,
-
-    ifsc:ifsc,
-
-    amount:Number(amount),
-
-    status:"pending"
-
-  });
-
-  alert("Withdraw Request Sent");
-
-  closeAll();
-
+/* UI */
+window.showDeposit=()=>depositBox.style.display="block";
+window.showWithdraw=()=>withdrawBox.style.display="block";
+window.closeAll=()=>{
+depositBox.style.display="none";
+withdrawBox.style.display="none";
 };
 
 </script>
