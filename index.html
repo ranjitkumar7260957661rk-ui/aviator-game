@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Clean Game</title>
+<title>Clean Aviator Game</title>
 
 <style>
 body{
@@ -10,7 +10,6 @@ font-family:Arial;
 background:#111;
 color:white;
 text-align:center;
-overflow:hidden;
 }
 
 .page{display:none;padding:20px;}
@@ -29,15 +28,8 @@ font-weight:bold;
 }
 
 #multi{
-font-size:55px;
+font-size:50px;
 color:#00ff99;
-}
-
-#plane{
-position:absolute;
-bottom:80px;
-left:60px;
-width:50px;
 }
 
 .popup{
@@ -49,7 +41,7 @@ transform:translate(-50%,-50%);
 background:#222;
 padding:20px;
 border-radius:10px;
-width:300px;
+width:280px;
 }
 </style>
 </head>
@@ -71,11 +63,7 @@ width:300px;
 
 <div id="multi">1.00x</div>
 
-<div style="height:120px;position:relative;">
-<img id="plane" src="https://i.imgur.com/3Q9QZ5p.png">
-</div>
-
-<input id="betAmount" placeholder="Bet Amount"><br>
+<input id="betAmount" placeholder="Bet"><br>
 
 <button onclick="bet()">BET</button>
 <button onclick="cashout()">CASHOUT</button>
@@ -92,8 +80,8 @@ width:300px;
 <div id="depositBox" class="popup">
 <h3>Deposit</h3>
 
-<p><b>UPI:</b> 7260957661@ybl</p>
-<p>Minimum ₹500</p>
+<p>UPI: 7260957661@ybl</p>
+<p>Min ₹500</p>
 
 <input id="depAmount" placeholder="Amount"><br>
 <input id="utr" placeholder="UTR"><br>
@@ -106,11 +94,11 @@ width:300px;
 <div id="withdrawBox" class="popup">
 <h3>Withdraw</h3>
 
-<input id="wname"><br>
-<input id="bank"><br>
-<input id="acc"><br>
-<input id="ifsc"><br>
-<input id="wamount"><br>
+<input id="wname" placeholder="Name"><br>
+<input id="bank" placeholder="Bank"><br>
+<input id="acc" placeholder="Account"><br>
+<input id="ifsc" placeholder="IFSC"><br>
+<input id="wamount" placeholder="Amount"><br>
 
 <button onclick="withdraw()">Submit</button>
 <button onclick="closeAll()">Close</button>
@@ -124,22 +112,19 @@ let balance=0;
 let bet=0;
 let running=false;
 
-/* LOGIN */
+/* LOGIN FIX */
 function login(){
-let m = document.getElementById("mobile").value;
-let p = document.getElementById("password").value;
+let m=document.getElementById("mobile").value;
+let p=document.getElementById("password").value;
 
 if(!m || !p){
 alert("Fill details");
 return;
 }
 
-user = m;
-
-/* SAVE LOGIN */
+user=m;
 localStorage.setItem("user",user);
 
-/* OPEN GAME */
 document.getElementById("loginPage").style.display="none";
 document.getElementById("gamePage").style.display="block";
 
@@ -147,9 +132,9 @@ loadUser();
 startGame();
 }
 
-/* AUTO LOGIN */
+/* AUTO LOGIN FIX */
 if(localStorage.getItem("user")){
-user = localStorage.getItem("user");
+user=localStorage.getItem("user");
 
 document.getElementById("loginPage").style.display="none";
 document.getElementById("gamePage").style.display="block";
@@ -158,21 +143,19 @@ loadUser();
 startGame();
 }
 
-/* USER DATA */
+/* BALANCE */
 function loadUser(){
-let b = localStorage.getItem("bal_"+user);
-
-balance = b ? Number(b) : 0;
-
-document.getElementById("balance").innerText = balance;
+let b=localStorage.getItem("bal_"+user);
+balance=b?Number(b):0;
+document.getElementById("balance").innerText=balance;
 }
 
 function save(){
 localStorage.setItem("bal_"+user,balance);
-document.getElementById("balance").innerText = balance;
+document.getElementById("balance").innerText=balance;
 }
 
-/* GAME ENGINE */
+/* GAME SAFE */
 function startGame(){
 
 if(running) return;
@@ -188,7 +171,6 @@ let loop=setInterval(()=>{
 m+=0.02;
 
 multi.innerText=m.toFixed(2)+"x";
-plane.style.left=(m*25)+"px";
 
 if(m>=crash){
 clearInterval(loop);
@@ -202,7 +184,7 @@ setTimeout(startGame,2000);
 
 /* BET */
 function bet(){
-let b = Number(betAmount.value);
+let b=Number(betAmount.value);
 
 if(b<=0) return alert("Invalid");
 if(b>balance) return alert("Low balance");
@@ -210,7 +192,6 @@ if(bet>0) return alert("Already bet");
 
 balance-=b;
 bet=b;
-
 save();
 }
 
@@ -218,7 +199,7 @@ save();
 function cashout(){
 if(!bet) return alert("No bet");
 
-let win = Math.floor(bet * parseFloat(multi.innerText));
+let win=Math.floor(bet*parseFloat(multi.innerText));
 
 balance+=win;
 save();
@@ -228,24 +209,22 @@ status.innerText="Won ₹"+win;
 bet=0;
 }
 
-/* DEPOSIT */
+/* DEPOSIT FIX */
 function deposit(){
-let amt = Number(depAmount.value);
+let amt=Number(depAmount.value);
 
 if(amt<500){
-alert("Minimum ₹500 required");
+alert("Min ₹500 required");
 return;
 }
 
-alert("Deposit Request Sent\nUPI: 7260957661@ybl");
-
+alert("Deposit sent\nUPI: 7260957661@ybl");
 closeAll();
 }
 
-/* WITHDRAW */
+/* WITHDRAW FIX */
 function withdraw(){
-alert("Withdraw Request Sent");
-
+alert("Withdraw sent");
 closeAll();
 }
 
