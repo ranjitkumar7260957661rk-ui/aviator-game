@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Game</title>
+<title>Aviator Clean Game</title>
 
 <style>
 body{
 margin:0;
 font-family:Arial;
-background:#0b0b0b;
+background:#111;
 color:white;
 text-align:center;
 }
@@ -25,11 +25,10 @@ button{
 background:#00e5ff;
 color:black;
 font-weight:bold;
-cursor:pointer;
 }
 
 #multi{
-font-size:50px;
+font-size:55px;
 color:#00ff99;
 }
 
@@ -75,15 +74,17 @@ width:300px;
 <img id="plane" src="https://i.imgur.com/3Q9QZ5p.png">
 </div>
 
-<input id="betAmount" placeholder="Bet"><br>
+<input id="betAmount" placeholder="Bet Amount"><br>
 
-<button onclick="placeBet()">BET</button>
+<button onclick="bet()">BET</button>
 <button onclick="cashout()">CASHOUT</button>
 
 <h3 id="status"></h3>
 
-<button onclick="showDeposit()">Deposit</button>
-<button onclick="showWithdraw()">Withdraw</button>
+<br>
+<button onclick="openDeposit()">Deposit</button>
+<button onclick="openWithdraw()">Withdraw</button>
+
 </div>
 
 <!-- DEPOSIT -->
@@ -91,12 +92,12 @@ width:300px;
 <h3>Deposit</h3>
 
 <p><b>UPI:</b> 7260957661@ybl</p>
-<p>Minimum ₹500</p>
+<p>Min ₹500</p>
 
 <input id="depAmount" placeholder="Amount"><br>
 <input id="utr" placeholder="UTR"><br>
 
-<button onclick="submitDeposit()">Submit</button>
+<button onclick="deposit()">Submit</button>
 <button onclick="closeAll()">Close</button>
 </div>
 
@@ -110,19 +111,20 @@ width:300px;
 <input id="ifsc" placeholder="IFSC"><br>
 <input id="wamount" placeholder="Amount"><br>
 
-<button onclick="submitWithdraw()">Submit</button>
+<button onclick="withdraw()">Submit</button>
 <button onclick="closeAll()">Close</button>
 </div>
 
 <script>
 
+/* STATE */
 let user="";
 let balance=0;
-let bet=0;
+let betAmount=0;
 let running=false;
 
 /* LOGIN */
-window.login=()=>{
+function login(){
 user = mobile.value;
 
 if(!user || !password.value){
@@ -137,7 +139,7 @@ gamePage.style.display="block";
 
 loadUser();
 startGame();
-};
+}
 
 /* AUTO LOGIN */
 if(localStorage.getItem("user")){
@@ -148,19 +150,19 @@ loadUser();
 startGame();
 }
 
-/* USER */
+/* USER DATA */
 function loadUser(){
-let data = localStorage.getItem("balance_"+user);
-balance = data ? Number(data) : 0;
+let b = localStorage.getItem("bal_"+user);
+balance = b ? Number(b) : 0;
 document.getElementById("balance").innerText = balance;
 }
 
 function save(){
-localStorage.setItem("balance_"+user,balance);
+localStorage.setItem("bal_"+user,balance);
 document.getElementById("balance").innerText = balance;
 }
 
-/* GAME */
+/* GAME (ONLY 1 LOOP) */
 function startGame(){
 
 if(running) return;
@@ -174,6 +176,7 @@ status.innerText="";
 let loop=setInterval(()=>{
 
 m+=0.02;
+
 multi.innerText=m.toFixed(2)+"x";
 plane.style.left=(m*25)+"px";
 
@@ -188,58 +191,59 @@ setTimeout(startGame,2000);
 }
 
 /* BET */
-window.placeBet=()=>{
+function bet(){
 let b=Number(betAmount.value);
 
 if(b<=0) return alert("Invalid");
 if(b>balance) return alert("Low balance");
-if(bet>0) return alert("Already bet");
+if(betAmount.dataset.lock=="1") return alert("Already bet");
 
 balance-=b;
-bet=b;
 save();
-};
+
+betAmount.dataset.lock="1";
+}
 
 /* CASHOUT */
-window.cashout=()=>{
-if(!bet) return alert("No bet");
+function cashout(){
+let b=Number(betAmount.value);
 
-let win=Math.floor(bet*parseFloat(multi.innerText));
+if(!b) return alert("No bet");
+
+let win=Math.floor(b*parseFloat(multi.innerText));
 
 balance+=win;
 save();
 
 status.innerText="Won ₹"+win;
 
-bet=0;
-};
+betAmount.dataset.lock="0";
+}
 
 /* DEPOSIT */
-window.submitDeposit=()=>{
+function deposit(){
 if(Number(depAmount.value)<500){
 alert("Min ₹500");
 return;
 }
 
-alert("Deposit Request Sent\nUPI: 7260957661@ybl");
-
+alert("Deposit request sent\nUPI: 7260957661@ybl");
 closeAll();
-};
+}
 
 /* WITHDRAW */
-window.submitWithdraw=()=>{
-alert("Withdraw Request Sent");
-
+function withdraw(){
+alert("Withdraw request sent");
 closeAll();
-};
+}
 
 /* UI */
-window.showDeposit=()=>depositBox.style.display="block";
-window.showWithdraw=()=>withdrawBox.style.display="block";
-window.closeAll=()=>{
+function openDeposit(){depositBox.style.display="block";}
+function openWithdraw(){withdrawBox.style.display="block";}
+function closeAll(){
 depositBox.style.display="none";
 withdrawBox.style.display="none";
-};
+}
 
 </script>
 
