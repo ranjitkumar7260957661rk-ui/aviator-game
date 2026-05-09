@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Stable Aviator Fix</title>
+<title>Aviator Clean Stable</title>
 
 <style>
 body{
@@ -10,6 +10,7 @@ font-family:Arial;
 background:#0b0b0b;
 color:white;
 text-align:center;
+overflow:hidden;
 }
 
 .page{display:none;padding:20px;}
@@ -27,18 +28,18 @@ color:black;
 font-weight:bold;
 }
 
-#menu{
-position:fixed;
-top:0;
-left:-220px;
-width:200px;
-height:100%;
-background:#111;
-transition:0.3s;
-padding-top:40px;
+#plane{
+position:absolute;
+bottom:80px;
+left:60px;
+width:50px;
 }
 
-#menu button{width:90%;margin:10px;}
+#multi{
+font-size:50px;
+color:#00ff99;
+transition:0.1s;
+}
 
 .popup{
 display:none;
@@ -51,15 +52,6 @@ padding:20px;
 border-radius:10px;
 width:300px;
 }
-
-h1{color:#00ff99;}
-
-#plane{
-position:absolute;
-bottom:60px;
-left:60px;
-width:50px;
-}
 </style>
 </head>
 
@@ -69,17 +61,16 @@ width:50px;
 <div id="loginPage" class="page" style="display:block;">
 <h2>Login</h2>
 <input id="mobile" placeholder="Mobile"><br>
-<input id="password" type="password" placeholder="Password"><br>
+<input id="password" type="password"><br>
 <button onclick="login()">Login</button>
 </div>
 
 <!-- GAME -->
 <div id="gamePage" class="page">
 
-<button onclick="toggleMenu()">☰</button>
-<h3>₹ <span id="balance">0</span></h3>
+<h3>Balance ₹<span id="balance">0</span></h3>
 
-<h1 id="multi">1.00x</h1>
+<div id="multi">1.00x</div>
 
 <div style="height:120px;position:relative;">
 <img id="plane" src="https://i.imgur.com/3Q9QZ5p.png">
@@ -91,13 +82,10 @@ width:50px;
 <button onclick="cashout()">CASHOUT</button>
 
 <h3 id="status"></h3>
-</div>
 
-<!-- MENU -->
-<div id="menu">
 <button onclick="showDeposit()">Deposit</button>
 <button onclick="showWithdraw()">Withdraw</button>
-<button onclick="logout()">Logout</button>
+
 </div>
 
 <!-- DEPOSIT -->
@@ -105,8 +93,10 @@ width:50px;
 <h3>Deposit</h3>
 <p>UPI: 7260957661@ybl</p>
 <p>Min ₹500</p>
+
 <input id="depAmount" placeholder="Amount"><br>
 <input id="utr" placeholder="UTR"><br>
+
 <button onclick="submitDeposit()">Submit</button>
 <button onclick="closeAll()">Close</button>
 </div>
@@ -114,11 +104,13 @@ width:50px;
 <!-- WITHDRAW -->
 <div id="withdrawBox" class="popup">
 <h3>Withdraw</h3>
+
 <input id="wname"><br>
 <input id="bank"><br>
 <input id="acc"><br>
 <input id="ifsc"><br>
 <input id="wamount"><br>
+
 <button onclick="submitWithdraw()">Submit</button>
 <button onclick="closeAll()">Close</button>
 </div>
@@ -139,21 +131,14 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
 /* STATE */
-let user = localStorage.getItem("user") || "";
+let user = "";
 let balance = 0;
 let bet = 0;
-let crashed = false;
 let running = false;
 
-/* ELEMENTS */
-const multi = document.getElementById("multi");
-const plane = document.getElementById("plane");
-const status = document.getElementById("status");
-
-/* AUTO LOGIN (IMPORTANT FIX FOR REFRESH) */
-if(user){
-openGame();
-}
+/* AUTO LOGIN SAFE */
+user = localStorage.getItem("user") || "";
+if(user) openGame();
 
 /* LOGIN */
 window.login = ()=>{
@@ -163,11 +148,10 @@ let p = password.value;
 user = m;
 localStorage.setItem("user",m);
 
-get(child(ref(db),'users/'+m)).then(snap=>{
-if(snap.exists()){
-if(snap.val().password==p){
-openGame();
-}else alert("Wrong password");
+get(child(ref(db),'users/'+m)).then(s=>{
+if(s.exists()){
+if(s.val().password==p) openGame();
+else alert("Wrong");
 }else{
 set(ref(db,'users/'+m),{
 password:p,
@@ -189,7 +173,7 @@ function loadUser(){
 onValue(ref(db,'users/'+user),snap=>{
 if(snap.exists()){
 balance = snap.val().balance||0;
-document.getElementById("balance").innerText = balance;
+balanceEl.innerText = balance;
 }
 });
 }
@@ -199,46 +183,34 @@ function save(){
 update(ref(db,'users/'+user),{balance});
 }
 
-/* MENU */
-window.toggleMenu=()=>{
-menu.style.left = (menu.style.left=="0px")?"-220px":"0px";
-};
-
-window.closeAll=()=>{
-menu.style.left="-220px";
-depositBox.style.display="none";
-withdrawBox.style.display="none";
-};
-
-/* GAME FIX (NO DOUBLE LOOP + SAFE REFRESH) */
+/* GAME FIXED (NO GLITCH / NO DOUBLE LOOP) */
 function startGame(){
 
 if(running) return;
 running = true;
 
 let m = 1;
-crashed = false;
-status.innerText="";
+let crash = (Math.random()*4)+1.5;
 
-let crashPoint = (Math.random()*4)+1.5;
+status.innerText="";
 
 let loop=setInterval(()=>{
 
-m += 0.03;
+m += 0.02;
+
 multi.innerText = m.toFixed(2)+"x";
 
-plane.style.left = (m*30)+"px";
+plane.style.left = (m*25)+"px";
 
-if(m>=crashPoint){
+/* STOP */
+if(m>=crash){
 clearInterval(loop);
 running=false;
-crashed=true;
 status.innerText="CRASH 💥";
 setTimeout(startGame,2000);
 }
 
 },120);
-
 }
 
 /* BET */
@@ -248,7 +220,6 @@ let b = Number(betAmount.value);
 if(b<=0) return alert("Invalid");
 if(b>balance) return alert("Low balance");
 if(bet>0) return alert("Already bet");
-if(crashed) return alert("Wait");
 
 balance -= b;
 bet = b;
@@ -258,7 +229,6 @@ save();
 /* CASHOUT */
 window.cashout=()=>{
 if(!bet) return alert("No bet");
-if(crashed) return alert("Crashed");
 
 let win = Math.floor(bet * parseFloat(multi.innerText));
 
@@ -270,20 +240,14 @@ status.innerText="Won ₹"+win;
 bet = 0;
 };
 
-/* DEPOSIT */
+/* DEPOSIT FIX (ALL DEVICES WORK) */
 window.submitDeposit=()=>{
-let amt = Number(depAmount.value);
-
-if(amt < 500) return alert("Min ₹500");
-
 push(ref(db,'deposits'),{
 user,
-amount:amt,
+amount:Number(depAmount.value),
 utr:utr.value,
-upi:"7260957661@ybl",
 status:"pending"
 });
-
 alert("Sent");
 closeAll();
 };
@@ -299,15 +263,17 @@ ifsc:ifsc.value,
 amount:Number(wamount.value),
 status:"pending"
 });
-
 alert("Sent");
 closeAll();
 };
 
-/* LOGOUT */
-window.logout=()=>{
-localStorage.removeItem("user");
-location.reload();
+/* UI */
+window.showDeposit=()=>depositBox.style.display="block";
+window.showWithdraw=()=>withdrawBox.style.display="block";
+
+window.closeAll=()=>{
+depositBox.style.display="none";
+withdrawBox.style.display="none";
 };
 
 </script>
