@@ -10,6 +10,7 @@ font-family:Arial;
 background:#111;
 color:white;
 text-align:center;
+overflow:hidden;
 }
 
 .page{display:none;padding:20px;}
@@ -25,11 +26,20 @@ button{
 background:#00e5ff;
 color:black;
 font-weight:bold;
+cursor:pointer;
 }
 
 #multi{
-font-size:50px;
+font-size:55px;
 color:#00ff99;
+margin-top:20px;
+}
+
+#plane{
+position:absolute;
+bottom:80px;
+left:60px;
+width:50px;
 }
 
 .popup{
@@ -63,7 +73,11 @@ width:280px;
 
 <div id="multi">1.00x</div>
 
-<input id="betAmount" placeholder="Bet"><br>
+<div style="height:120px;position:relative;">
+<img id="plane" src="https://i.imgur.com/3Q9QZ5p.png">
+</div>
+
+<input id="betAmount" placeholder="Bet Amount"><br>
 
 <button onclick="bet()">BET</button>
 <button onclick="cashout()">CASHOUT</button>
@@ -80,8 +94,8 @@ width:280px;
 <div id="depositBox" class="popup">
 <h3>Deposit</h3>
 
-<p>UPI: 7260957661@ybl</p>
-<p>Min ₹500</p>
+<p><b>UPI:</b> 7260957661@ybl</p>
+<p>Minimum ₹500</p>
 
 <input id="depAmount" placeholder="Amount"><br>
 <input id="utr" placeholder="UTR"><br>
@@ -112,8 +126,9 @@ let balance=0;
 let bet=0;
 let running=false;
 
-/* LOGIN FIX */
+/* LOGIN */
 function login(){
+
 let m=document.getElementById("mobile").value;
 let p=document.getElementById("password").value;
 
@@ -123,8 +138,11 @@ return;
 }
 
 user=m;
+
+/* SAVE LOGIN */
 localStorage.setItem("user",user);
 
+/* SHOW GAME */
 document.getElementById("loginPage").style.display="none";
 document.getElementById("gamePage").style.display="block";
 
@@ -132,7 +150,7 @@ loadUser();
 startGame();
 }
 
-/* AUTO LOGIN FIX */
+/* AUTO LOGIN */
 if(localStorage.getItem("user")){
 user=localStorage.getItem("user");
 
@@ -155,7 +173,7 @@ localStorage.setItem("bal_"+user,balance);
 document.getElementById("balance").innerText=balance;
 }
 
-/* GAME SAFE */
+/* GAME ENGINE */
 function startGame(){
 
 if(running) return;
@@ -171,6 +189,7 @@ let loop=setInterval(()=>{
 m+=0.02;
 
 multi.innerText=m.toFixed(2)+"x";
+plane.style.left=(m*25)+"px";
 
 if(m>=crash){
 clearInterval(loop);
@@ -209,22 +228,24 @@ status.innerText="Won ₹"+win;
 bet=0;
 }
 
-/* DEPOSIT FIX */
+/* DEPOSIT */
 function deposit(){
 let amt=Number(depAmount.value);
 
 if(amt<500){
-alert("Min ₹500 required");
+alert("Minimum ₹500 required");
 return;
 }
 
-alert("Deposit sent\nUPI: 7260957661@ybl");
+alert("Deposit Request Sent\nUPI: 7260957661@ybl");
+
 closeAll();
 }
 
-/* WITHDRAW FIX */
+/* WITHDRAW */
 function withdraw(){
-alert("Withdraw sent");
+alert("Withdraw Request Sent");
+
 closeAll();
 }
 
