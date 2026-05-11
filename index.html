@@ -85,6 +85,12 @@
       font-size:22px;
       margin-top:10px;
     }
+
+    #betTimer{
+      color:#00ffff;
+      font-size:22px;
+      margin-top:10px;
+    }
   </style>
 </head>
 
@@ -117,6 +123,8 @@
   </div>
 
   <h1 id="multi">1.00x</h1>
+
+  <div id="betTimer">Bet Time: 5</div>
 
   <div id="timer"></div>
 
@@ -401,6 +409,8 @@ let roundBetPlaced = false;
 
 let cashedOut = false;
 
+let betClosed = true;
+
 function startRound(){
 
   multiplier = 1;
@@ -411,15 +421,56 @@ function startRound(){
 
   cashedOut = false;
 
+  betClosed = false;
+
+  userBet = 0;
+
   document.getElementById("status").innerText = "";
 
   document.getElementById("timer").innerText = "";
+
+  document.getElementById("multi").innerText = "1.00x";
+
+  /* BET TIMER */
+
+  let betTime = 5;
+
+  document.getElementById("betTimer").innerText =
+  "Bet Time: "+betTime;
+
+  let betLoop = setInterval(()=>{
+
+    betTime--;
+
+    document.getElementById("betTimer").innerText =
+    "Bet Time: "+betTime;
+
+    if(betTime<=0){
+
+      clearInterval(betLoop);
+
+      document.getElementById("betTimer").innerText =
+      "BET CLOSED";
+
+      betClosed = true;
+
+      startFlying();
+
+    }
+
+  },1000);
+
+}
+
+/* START FLY */
+
+function startFlying(){
 
   let random = Math.random();
 
   let crashPoint;
 
-  /* 60% jaldi */
+  /* 60% जल्दी */
 
   if(random < 0.60){
 
@@ -510,6 +561,14 @@ startRound();
 window.placeBet = ()=>{
 
   let bet = Number(document.getElementById("betAmount").value);
+
+  if(betClosed){
+
+    alert("Bet Time Over");
+
+    return;
+
+  }
 
   if(bet<=0){
 
