@@ -1,3 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Aviator Game</title>
+
+<style>
+
+body{
+margin:0;
+padding:0;
+background:#111;
+font-family:Arial;
+color:white;
+text-align:center;
+}
+
+#loginPage,#gamePage{
+padding:20px;
+}
+
+input{
+padding:12px;
+margin:8px;
+width:220px;
+border:none;
+border-radius:6px;
+font-size:16px;
+}
+
+button{
+padding:12px 20px;
+margin:8px;
+border:none;
+border-radius:6px;
+background:#00bcd4;
+color:white;
+font-size:16px;
+font-weight:bold;
+}
+
+#topbar{
+background:#000;
+padding:15px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+}
+
+#multi{
+font-size:70px;
+color:#00ff99;
+margin-top:60px;
+}
+
+#betTimer{
+font-size:22px;
+color:yellow;
+margin-top:10px;
+}
+
+#timer{
+font-size:20px;
+color:#00bcd4;
+margin-top:10px;
+}
+
+#status{
+font-size:26px;
+margin-top:20px;
+}
+
+.popup{
+display:none;
+position:fixed;
+top:50%;
+left:50%;
+transform:translate(-50%,-50%);
+background:#222;
+padding:20px;
+border-radius:10px;
+width:300px;
+}
+
+</style>
+</head>
+
+<body>
+
+<!-- LOGIN -->
+
+<div id="loginPage">
+
+<h2>Login</h2>
+
+<input id="mobile" placeholder="Mobile"><br>
+
+<input id="password" type="password" placeholder="Password"><br>
+
+<button onclick="login()">LOGIN</button>
+
+</div>
+
+<!-- GAME -->
+
+<div id="gamePage" style="display:none;">
+
+<div id="topbar">
+
+<h3>Balance ₹<span id="balance">0</span></h3>
+
+<button onclick="logout()">Logout</button>
+
+</div>
+
+<h1 id="multi">1.00x</h1>
+
+<div id="betTimer">Bet Time: 5</div>
+
+<div id="timer"></div>
+
+<input id="betAmount" placeholder="Bet Amount"><br>
+
+<button onclick="placeBet()">BET</button>
+
+<button onclick="cashout()">CASHOUT</button>
+
+<h2 id="status"></h2>
+
+<br>
+
+<button onclick="openDeposit()">Deposit</button>
+
+<button onclick="openWithdraw()">Withdraw</button>
+
+</div>
+
 <!-- DEPOSIT -->
 
 <div id="depositBox" class="popup">
@@ -8,7 +144,7 @@
 
 <p>UPI: 7260957661@ybl</p>
 
-<input type="number" id="depAmount" placeholder="Amount"><br>
+<input id="depAmount" placeholder="Amount"><br>
 
 <input id="utr" placeholder="UTR Number"><br>
 
@@ -26,15 +162,7 @@
 
 <p>Minimum ₹500</p>
 
-<input id="wname" placeholder="Name"><br>
-
-<input id="bank" placeholder="Bank Name"><br>
-
-<input id="acc" placeholder="Account Number"><br>
-
-<input id="ifsc" placeholder="IFSC"><br>
-
-<input type="number" id="wamount" placeholder="Amount"><br>
+<input id="wamount" placeholder="Amount"><br>
 
 <button onclick="submitWithdraw()">Submit</button>
 
@@ -44,75 +172,103 @@
 
 <script>
 
-let balance = 0;
-let multiplier = 1;
-let crashed = false;
-let userBet = 0;
-let betClosed = false;
-let cashedOut = false;
+/* LOGIN */
 
-document.getElementById("balance").innerText = balance;
+let currentUser = localStorage.getItem("user") || "";
 
-/* FIXED CRASH LIST */
+let balance = Number(localStorage.getItem("balance")) || 0;
 
-let crashList = [
-1,2,200,1,50,2,1,3,5,1,
-5,3,1,10,1,29,45,1,7,4,
-7,1,1,1,9,1,1,5,4,45,
-80,1,20,45,1,4,5,9,1,20,
-1,22,1,1,24,26,1,100,1,400,
-3680,548,1,200,600,5890,20,40,
-1,1,800,1,1000,580,856
-];
+if(currentUser!=""){
 
-let crashIndex = 0;
+document.getElementById("loginPage").style.display="none";
 
-function nextCrash(){
+document.getElementById("gamePage").style.display="block";
 
-let value = crashList[crashIndex];
-
-crashIndex++;
-
-if(crashIndex >= crashList.length){
-crashIndex = 0;
-}
-
-return value;
+document.getElementById("balance").innerText=balance;
 
 }
 
-/* START ROUND */
+function login(){
+
+let mobile=document.getElementById("mobile").value;
+
+let password=document.getElementById("password").value;
+
+if(mobile=="" || password==""){
+
+alert("Enter Details");
+
+return;
+
+}
+
+localStorage.setItem("user",mobile);
+
+currentUser=mobile;
+
+document.getElementById("loginPage").style.display="none";
+
+document.getElementById("gamePage").style.display="block";
+
+document.getElementById("balance").innerText=balance;
+
+}
+
+function logout(){
+
+localStorage.removeItem("user");
+
+location.reload();
+
+}
+
+/* GAME */
+
+let multiplier=1;
+
+let crashed=false;
+
+let userBet=0;
+
+let betClosed=false;
+
+let cashedOut=false;
 
 function startRound(){
 
-multiplier = 1;
-crashed = false;
-userBet = 0;
-cashedOut = false;
-betClosed = false;
+multiplier=1;
 
-document.getElementById("multi").innerText = "1.00x";
-document.getElementById("status").innerText = "";
+crashed=false;
 
-let betTime = 5;
+betClosed=false;
 
-document.getElementById("betTimer").innerText =
-"Bet Time: " + betTime;
+cashedOut=false;
 
-let betLoop = setInterval(function(){
+userBet=0;
+
+document.getElementById("multi").innerText="1.00x";
+
+document.getElementById("status").innerText="";
+
+let betTime=5;
+
+document.getElementById("betTimer").innerText=
+"Bet Time: "+betTime;
+
+let betLoop=setInterval(()=>{
 
 betTime--;
 
-document.getElementById("betTimer").innerText =
-"Bet Time: " + betTime;
+document.getElementById("betTimer").innerText=
+"Bet Time: "+betTime;
 
-if(betTime <= 0){
+if(betTime<=0){
 
 clearInterval(betLoop);
 
-betClosed = true;
+betClosed=true;
 
-document.getElementById("betTimer").innerText =
+document.getElementById("betTimer").innerText=
 "BET CLOSED";
 
 startFlying();
@@ -123,52 +279,67 @@ startFlying();
 
 }
 
-/* START FLYING */
-
 function startFlying(){
 
-let crashPoint = nextCrash();
+let random=Math.random();
 
-let flyLoop = setInterval(function(){
+let crashPoint;
+
+if(random<0.60){
+
+crashPoint=(Math.random()*1.5+1.20);
+
+}else if(random<0.90){
+
+crashPoint=(Math.random()*2+2.50);
+
+}else{
+
+crashPoint=(Math.random()*4+5);
+
+}
+
+let loop=setInterval(()=>{
 
 if(crashed){
 
-clearInterval(flyLoop);
+clearInterval(loop);
+
 return;
 
 }
 
-multiplier += 0.02;
+multiplier+=0.02;
 
-document.getElementById("multi").innerText =
-multiplier.toFixed(2) + "x";
+document.getElementById("multi").innerText=
+multiplier.toFixed(2)+"x";
 
-if(multiplier >= crashPoint){
+if(multiplier>=crashPoint){
 
-crashed = true;
+crashed=true;
 
-clearInterval(flyLoop);
+clearInterval(loop);
 
-document.getElementById("status").innerText =
-"CRASHED 💥 at " + crashPoint + "x";
+document.getElementById("status").innerText=
+"CRASHED 💥 at "+crashPoint.toFixed(2)+"x";
 
-let t = 3;
+let t=3;
 
-document.getElementById("timer").innerText =
-"Next Round In " + t;
+document.getElementById("timer").innerText=
+"Next Round In "+t;
 
-let timerLoop = setInterval(function(){
+let timerLoop=setInterval(()=>{
 
 t--;
 
-document.getElementById("timer").innerText =
-"Next Round In " + t;
+document.getElementById("timer").innerText=
+"Next Round In "+t;
 
-if(t <= 0){
+if(t<=0){
 
 clearInterval(timerLoop);
 
-document.getElementById("timer").innerText = "";
+document.getElementById("timer").innerText="";
 
 startRound();
 
@@ -178,7 +349,7 @@ startRound();
 
 }
 
-},150);
+},170);
 
 }
 
@@ -188,8 +359,7 @@ startRound();
 
 function placeBet(){
 
-let bet =
-Number(document.getElementById("betAmount").value);
+let bet=Number(document.getElementById("betAmount").value);
 
 if(betClosed){
 
@@ -199,23 +369,7 @@ return;
 
 }
 
-if(bet <= 0){
-
-alert("Invalid Bet");
-
-return;
-
-}
-
-if(bet > balance){
-
-alert("Low Balance");
-
-return;
-
-}
-
-if(userBet > 0){
+if(userBet>0){
 
 alert("Already Bet");
 
@@ -223,14 +377,32 @@ return;
 
 }
 
-balance -= bet;
+if(bet<=0){
 
-document.getElementById("balance").innerText = balance;
+alert("Invalid Bet");
 
-userBet = bet;
+return;
 
-document.getElementById("status").innerText =
-"Bet Placed ₹" + bet;
+}
+
+if(bet>balance){
+
+alert("Low Balance");
+
+return;
+
+}
+
+balance-=bet;
+
+localStorage.setItem("balance",balance);
+
+document.getElementById("balance").innerText=balance;
+
+userBet=bet;
+
+document.getElementById("status").innerText=
+"Bet Placed ₹"+bet;
 
 }
 
@@ -238,7 +410,7 @@ document.getElementById("status").innerText =
 
 function cashout(){
 
-if(userBet <= 0){
+if(userBet<=0){
 
 alert("No Bet");
 
@@ -262,18 +434,20 @@ return;
 
 }
 
-let win = Math.floor(userBet * multiplier);
+let win=Math.floor(userBet*multiplier);
 
-balance += win;
+balance+=win;
 
-document.getElementById("balance").innerText = balance;
+localStorage.setItem("balance",balance);
 
-document.getElementById("status").innerText =
-"You Won ₹" + win;
+document.getElementById("balance").innerText=balance;
 
-cashedOut = true;
+document.getElementById("status").innerText=
+"You Won ₹"+win;
 
-userBet = 0;
+cashedOut=true;
+
+userBet=0;
 
 }
 
@@ -281,17 +455,15 @@ userBet = 0;
 
 function openDeposit(){
 
-document.getElementById("depositBox").style.display =
-"block";
+document.getElementById("depositBox").style.display="block";
 
 }
 
 function submitDeposit(){
 
-let amount =
-Number(document.getElementById("depAmount").value);
+let amount=Number(document.getElementById("depAmount").value);
 
-if(amount < 500){
+if(amount<500){
 
 alert("Minimum Deposit ₹500");
 
@@ -309,17 +481,15 @@ closeAll();
 
 function openWithdraw(){
 
-document.getElementById("withdrawBox").style.display =
-"block";
+document.getElementById("withdrawBox").style.display="block";
 
 }
 
 function submitWithdraw(){
 
-let amount =
-Number(document.getElementById("wamount").value);
+let amount=Number(document.getElementById("wamount").value);
 
-if(amount < 500){
+if(amount<500){
 
 alert("Minimum Withdraw ₹500");
 
@@ -333,23 +503,11 @@ closeAll();
 
 }
 
-/* CLOSE */
-
 function closeAll(){
 
-document.getElementById("depositBox").style.display =
-"none";
+document.getElementById("depositBox").style.display="none";
 
-document.getElementById("withdrawBox").style.display =
-"none";
-
-}
-
-/* LOGOUT */
-
-function logout(){
-
-location.reload();
+document.getElementById("withdrawBox").style.display="none";
 
 }
 
