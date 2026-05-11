@@ -6,11 +6,12 @@
 <title>Aviator Demo</title>
 
 <style>
+
 body{
     margin:0;
     font-family:Arial;
     background:#111;
-    color:#fff;
+    color:white;
     text-align:center;
 }
 
@@ -71,6 +72,7 @@ button{
 .menuBtns{
     margin-top:20px;
 }
+
 </style>
 </head>
 
@@ -93,7 +95,7 @@ button{
 <div id="gamePage">
 
 <div class="top">
-<h3>Balance ₹<span id="balance">1000</span></h3>
+<h3>Balance ₹<span id="balance">0</span></h3>
 </div>
 
 <div id="multi">1.00x</div>
@@ -107,11 +109,13 @@ button{
 <h3 id="status"></h3>
 
 <div class="menuBtns">
+
 <button onclick="openDeposit()">Deposit</button>
 
 <button onclick="openWithdraw()">Withdraw</button>
 
 <button onclick="logout()">Logout</button>
+
 </div>
 
 </div>
@@ -159,48 +163,69 @@ button{
 <script>
 
 /* USER DATA */
+
 let currentUser = "";
-let balance = 1000;
+let balance = 0;
+
 let currentMultiplier = 1;
 let crashed = false;
 let userBet = 0;
 let gameRunning = false;
 
 /* AUTO LOGIN */
+
 if(localStorage.getItem("user")){
+
     currentUser = localStorage.getItem("user");
+
     openGame();
 }
 
 /* LOGIN */
+
 function login(){
 
-    let mobile = document.getElementById("mobile").value;
-    let password = document.getElementById("password").value;
+    let mobile =
+    document.getElementById("mobile").value;
+
+    let password =
+    document.getElementById("password").value;
 
     if(!mobile || !password){
-        alert("Enter details");
+
+        alert("Enter Details");
+
         return;
     }
 
     currentUser = mobile;
 
+    /* SAVE USER */
+
     localStorage.setItem("user",mobile);
+
+    /* NEW USER BALANCE = 0 */
+
+    if(localStorage.getItem("balance_"+mobile)==null){
+
+        localStorage.setItem("balance_"+mobile,0);
+    }
 
     openGame();
 }
 
 /* OPEN GAME */
+
 function openGame(){
 
     document.getElementById("loginPage").style.display="none";
+
     document.getElementById("gamePage").style.display="block";
 
-    let savedBalance = localStorage.getItem("balance_"+currentUser);
+    let savedBalance =
+    localStorage.getItem("balance_"+currentUser);
 
-    if(savedBalance){
-        balance = Number(savedBalance);
-    }
+    balance = Number(savedBalance || 0);
 
     updateBalance();
 
@@ -208,12 +233,19 @@ function openGame(){
 }
 
 /* SAVE BALANCE */
+
 function updateBalance(){
+
     document.getElementById("balance").innerText = balance;
-    localStorage.setItem("balance_"+currentUser,balance);
+
+    localStorage.setItem(
+        "balance_"+currentUser,
+        balance
+    );
 }
 
 /* GAME LOOP */
+
 function startGame(){
 
     if(gameRunning) return;
@@ -221,6 +253,7 @@ function startGame(){
     gameRunning = true;
 
     currentMultiplier = 1;
+
     crashed = false;
 
     document.getElementById("status").innerText = "";
@@ -254,27 +287,37 @@ function startGame(){
 }
 
 /* BET */
+
 function placeBet(){
 
-    let bet = Number(document.getElementById("betInput").value);
+    let bet =
+    Number(document.getElementById("betInput").value);
 
     if(bet<=0){
+
         alert("Invalid Bet");
+
         return;
     }
 
     if(bet>balance){
+
         alert("Low Balance");
+
         return;
     }
 
     if(userBet>0){
+
         alert("Already Bet");
+
         return;
     }
 
     if(crashed){
-        alert("Wait next round");
+
+        alert("Wait Next Round");
+
         return;
     }
 
@@ -286,20 +329,27 @@ function placeBet(){
 }
 
 /* CASHOUT */
+
 function cashout(){
 
     if(userBet<=0){
+
         alert("No Bet");
+
         return;
     }
 
     if(crashed){
-        alert("Round crashed");
+
+        alert("Round Crashed");
+
         userBet = 0;
+
         return;
     }
 
-    let win = Math.floor(userBet * currentMultiplier);
+    let win =
+    Math.floor(userBet * currentMultiplier);
 
     balance += win;
 
@@ -311,44 +361,61 @@ function cashout(){
     userBet = 0;
 }
 
-/* DEPOSIT */
+/* OPEN DEPOSIT */
+
 function openDeposit(){
+
     document.getElementById("depositBox").style.display="block";
 }
 
-/* WITHDRAW */
+/* OPEN WITHDRAW */
+
 function openWithdraw(){
+
     document.getElementById("withdrawBox").style.display="block";
 }
 
 /* CLOSE */
+
 function closeAll(){
+
     document.getElementById("depositBox").style.display="none";
+
     document.getElementById("withdrawBox").style.display="none";
 }
 
 /* SUBMIT DEPOSIT */
+
 function submitDeposit(){
 
-    let amount = Number(document.getElementById("depAmount").value);
+    let amount =
+    Number(document.getElementById("depAmount").value);
 
     if(amount < 500){
+
         alert("Minimum Deposit ₹500");
+
         return;
     }
 
-    alert("Deposit Request Sent");
+    alert(
+    "Deposit Request Sent\nUPI: 7260957661@ybl"
+    );
 
     closeAll();
 }
 
 /* SUBMIT WITHDRAW */
+
 function submitWithdraw(){
 
-    let amount = Number(document.getElementById("wamount").value);
+    let amount =
+    Number(document.getElementById("wamount").value);
 
     if(amount<=0){
+
         alert("Invalid Amount");
+
         return;
     }
 
@@ -358,6 +425,7 @@ function submitWithdraw(){
 }
 
 /* LOGOUT */
+
 function logout(){
 
     localStorage.removeItem("user");
