@@ -48,6 +48,12 @@ button{
     font-size:22px;
 }
 
+#timer{
+    font-size:20px;
+    color:yellow;
+    margin-top:10px;
+}
+
 .popup{
     display:none;
     position:fixed;
@@ -99,6 +105,8 @@ button{
 </div>
 
 <div id="multi">1.00x</div>
+
+<div id="timer"></div>
 
 <input id="betInput" placeholder="Bet Amount"><br>
 
@@ -171,6 +179,7 @@ let currentMultiplier = 1;
 let crashed = false;
 let userBet = 0;
 let gameRunning = false;
+let cashedOut = false;
 
 /* AUTO LOGIN */
 
@@ -201,11 +210,7 @@ return;
 
 currentUser = mobile;
 
-/* SAVE LOGIN */
-
 localStorage.setItem("user",mobile);
-
-/* NEW USER BALANCE = 0 */
 
 if(localStorage.getItem("balance_"+mobile) === null){
 
@@ -236,7 +241,7 @@ startGame();
 
 }
 
-/* SAVE BALANCE */
+/* UPDATE BALANCE */
 
 function updateBalance(){
 
@@ -261,13 +266,18 @@ currentMultiplier = 1;
 
 crashed = false;
 
+cashedOut = false;
+
 document.getElementById("status").innerText = "";
 
-let crashPoint = (Math.random()*4)+1.5;
+document.getElementById("timer").innerText = "";
+
+let crashPoint =
+(Number((Math.random()*8)+1).toFixed(2));
 
 let loop = setInterval(()=>{
 
-currentMultiplier += 0.02;
+currentMultiplier += 0.03;
 
 document.getElementById("multi").innerText =
 currentMultiplier.toFixed(2)+"x";
@@ -278,14 +288,38 @@ clearInterval(loop);
 
 crashed = true;
 
+gameRunning = false;
+
 document.getElementById("status").innerText =
-"CRASHED 💥";
+"CRASHED 💥 at "+crashPoint+"x";
 
 userBet = 0;
 
-gameRunning = false;
+/* 3 SECOND TIMER */
 
-setTimeout(startGame,2000);
+let t = 3;
+
+document.getElementById("timer").innerText =
+"Next Round In "+t;
+
+let timerLoop = setInterval(()=>{
+
+t--;
+
+document.getElementById("timer").innerText =
+"Next Round In "+t;
+
+if(t<=0){
+
+clearInterval(timerLoop);
+
+document.getElementById("timer").innerText = "";
+
+startGame();
+
+}
+
+},1000);
 
 }
 
@@ -334,6 +368,8 @@ updateBalance();
 
 userBet = bet;
 
+cashedOut = false;
+
 }
 
 /* CASHOUT */
@@ -343,6 +379,15 @@ function cashout(){
 if(userBet<=0){
 
 alert("No Bet");
+
+return;
+}
+
+/* ONLY ONE CASHOUT */
+
+if(cashedOut){
+
+alert("Already Cashed Out");
 
 return;
 }
@@ -365,6 +410,8 @@ updateBalance();
 
 document.getElementById("status").innerText =
 "You Won ₹"+win;
+
+cashedOut = true;
 
 userBet = 0;
 
@@ -396,7 +443,7 @@ document.getElementById("withdrawBox").style.display="none";
 
 }
 
-/* SUBMIT DEPOSIT */
+/* DEPOSIT */
 
 function submitDeposit(){
 
@@ -418,7 +465,7 @@ closeAll();
 
 }
 
-/* SUBMIT WITHDRAW */
+/* WITHDRAW */
 
 function submitWithdraw(){
 
