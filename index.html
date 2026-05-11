@@ -176,261 +176,276 @@ let gameRunning = false;
 
 if(localStorage.getItem("user")){
 
-    currentUser = localStorage.getItem("user");
+currentUser = localStorage.getItem("user");
 
-    openGame();
+openGame();
+
 }
 
 /* LOGIN */
 
 function login(){
 
-    let mobile =
-    document.getElementById("mobile").value;
+let mobile =
+document.getElementById("mobile").value;
 
-    let password =
-    document.getElementById("password").value;
+let password =
+document.getElementById("password").value;
 
-    if(!mobile || !password){
+if(!mobile || !password){
 
-        alert("Enter Details");
+alert("Enter Details");
 
-        return;
-    }
+return;
+}
 
-    currentUser = mobile;
+currentUser = mobile;
 
-    /* SAVE USER */
+/* SAVE LOGIN */
 
-    localStorage.setItem("user",mobile);
+localStorage.setItem("user",mobile);
 
-    /* NEW USER BALANCE = 0 */
+/* NEW USER BALANCE = 0 */
 
-    if(localStorage.getItem("balance_"+mobile)==null){
+if(localStorage.getItem("balance_"+mobile) === null){
 
-        localStorage.setItem("balance_"+mobile,0);
-    }
+localStorage.setItem("balance_"+mobile,"0");
 
-    openGame();
+}
+
+openGame();
+
 }
 
 /* OPEN GAME */
 
 function openGame(){
 
-    document.getElementById("loginPage").style.display="none";
+document.getElementById("loginPage").style.display="none";
 
-    document.getElementById("gamePage").style.display="block";
+document.getElementById("gamePage").style.display="block";
 
-    let savedBalance =
-    localStorage.getItem("balance_"+currentUser);
+let savedBalance =
+localStorage.getItem("balance_"+currentUser);
 
-    balance = Number(savedBalance || 0);
+balance = Number(savedBalance || 0);
 
-    updateBalance();
+updateBalance();
 
-    startGame();
+startGame();
+
 }
 
 /* SAVE BALANCE */
 
 function updateBalance(){
 
-    document.getElementById("balance").innerText = balance;
+document.getElementById("balance").innerText = balance;
 
-    localStorage.setItem(
-        "balance_"+currentUser,
-        balance
-    );
+localStorage.setItem(
+"balance_"+currentUser,
+balance
+);
+
 }
 
 /* GAME LOOP */
 
 function startGame(){
 
-    if(gameRunning) return;
+if(gameRunning) return;
 
-    gameRunning = true;
+gameRunning = true;
 
-    currentMultiplier = 1;
+currentMultiplier = 1;
 
-    crashed = false;
+crashed = false;
 
-    document.getElementById("status").innerText = "";
+document.getElementById("status").innerText = "";
 
-    let crashPoint = (Math.random()*4)+1.5;
+let crashPoint = (Math.random()*4)+1.5;
 
-    let loop = setInterval(()=>{
+let loop = setInterval(()=>{
 
-        currentMultiplier += 0.02;
+currentMultiplier += 0.02;
 
-        document.getElementById("multi").innerText =
-        currentMultiplier.toFixed(2)+"x";
+document.getElementById("multi").innerText =
+currentMultiplier.toFixed(2)+"x";
 
-        if(currentMultiplier >= crashPoint){
+if(currentMultiplier >= crashPoint){
 
-            clearInterval(loop);
+clearInterval(loop);
 
-            crashed = true;
+crashed = true;
 
-            document.getElementById("status").innerText =
-            "CRASHED 💥";
+document.getElementById("status").innerText =
+"CRASHED 💥";
 
-            userBet = 0;
+userBet = 0;
 
-            gameRunning = false;
+gameRunning = false;
 
-            setTimeout(startGame,2000);
-        }
+setTimeout(startGame,2000);
 
-    },120);
+}
+
+},120);
+
 }
 
 /* BET */
 
 function placeBet(){
 
-    let bet =
-    Number(document.getElementById("betInput").value);
+let bet =
+Number(document.getElementById("betInput").value);
 
-    if(bet<=0){
+if(bet<=0){
 
-        alert("Invalid Bet");
+alert("Invalid Bet");
 
-        return;
-    }
+return;
+}
 
-    if(bet>balance){
+if(bet>balance){
 
-        alert("Low Balance");
+alert("Low Balance");
 
-        return;
-    }
+return;
+}
 
-    if(userBet>0){
+if(userBet>0){
 
-        alert("Already Bet");
+alert("Already Bet");
 
-        return;
-    }
+return;
+}
 
-    if(crashed){
+if(crashed){
 
-        alert("Wait Next Round");
+alert("Wait Next Round");
 
-        return;
-    }
+return;
+}
 
-    balance -= bet;
+balance -= bet;
 
-    updateBalance();
+updateBalance();
 
-    userBet = bet;
+userBet = bet;
+
 }
 
 /* CASHOUT */
 
 function cashout(){
 
-    if(userBet<=0){
+if(userBet<=0){
 
-        alert("No Bet");
+alert("No Bet");
 
-        return;
-    }
+return;
+}
 
-    if(crashed){
+if(crashed){
 
-        alert("Round Crashed");
+alert("Round Crashed");
 
-        userBet = 0;
+userBet = 0;
 
-        return;
-    }
+return;
+}
 
-    let win =
-    Math.floor(userBet * currentMultiplier);
+let win =
+Math.floor(userBet * currentMultiplier);
 
-    balance += win;
+balance += win;
 
-    updateBalance();
+updateBalance();
 
-    document.getElementById("status").innerText =
-    "You Won ₹"+win;
+document.getElementById("status").innerText =
+"You Won ₹"+win;
 
-    userBet = 0;
+userBet = 0;
+
 }
 
 /* OPEN DEPOSIT */
 
 function openDeposit(){
 
-    document.getElementById("depositBox").style.display="block";
+document.getElementById("depositBox").style.display="block";
+
 }
 
 /* OPEN WITHDRAW */
 
 function openWithdraw(){
 
-    document.getElementById("withdrawBox").style.display="block";
+document.getElementById("withdrawBox").style.display="block";
+
 }
 
 /* CLOSE */
 
 function closeAll(){
 
-    document.getElementById("depositBox").style.display="none";
+document.getElementById("depositBox").style.display="none";
 
-    document.getElementById("withdrawBox").style.display="none";
+document.getElementById("withdrawBox").style.display="none";
+
 }
 
 /* SUBMIT DEPOSIT */
 
 function submitDeposit(){
 
-    let amount =
-    Number(document.getElementById("depAmount").value);
+let amount =
+Number(document.getElementById("depAmount").value);
 
-    if(amount < 500){
+if(amount < 500){
 
-        alert("Minimum Deposit ₹500");
+alert("Minimum Deposit ₹500");
 
-        return;
-    }
+return;
+}
 
-    alert(
-    "Deposit Request Sent\nUPI: 7260957661@ybl"
-    );
+alert(
+"Deposit Request Sent\nUPI: 7260957661@ybl"
+);
 
-    closeAll();
+closeAll();
+
 }
 
 /* SUBMIT WITHDRAW */
 
 function submitWithdraw(){
 
-    let amount =
-    Number(document.getElementById("wamount").value);
+let amount =
+Number(document.getElementById("wamount").value);
 
-    if(amount<=0){
+if(amount<=0){
 
-        alert("Invalid Amount");
+alert("Invalid Amount");
 
-        return;
-    }
+return;
+}
 
-    alert("Withdraw Request Sent");
+alert("Withdraw Request Sent");
 
-    closeAll();
+closeAll();
+
 }
 
 /* LOGOUT */
 
 function logout(){
 
-    localStorage.removeItem("user");
+localStorage.removeItem("user");
 
-    location.reload();
+location.reload();
+
 }
 
 </script>
