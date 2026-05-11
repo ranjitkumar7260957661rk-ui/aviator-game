@@ -1,73 +1,23 @@
-<button onclick="placeBet()">BET</button>
-
-<button onclick="cashout()">CASHOUT</button>
-
-<h3 id="status"></h3>
-
-<div class="menuBtns">
-
-<button onclick="openDeposit()">Deposit</button>
-
-<button onclick="openWithdraw()">Withdraw</button>
-
-<button onclick="logout()">Logout</button>
-
-</div>
-
-</div>
-
-<!-- DEPOSIT -->
-<div id="depositBox" class="popup">
-
-<h2>Deposit</h2>
-
-<p>Minimum ₹500</p>
-
-<p><b>UPI:</b> 7260957661@ybl</p>
-
-<input id="depAmount" placeholder="Amount"><br>
-
-<input id="utr" placeholder="UTR Number"><br>
-
-<button onclick="submitDeposit()">Submit</button>
-
-<button onclick="closeAll()">Close</button>
-
-</div>
-
-<!-- WITHDRAW -->
-<div id="withdrawBox" class="popup">
-
-<h2>Withdraw</h2>
-
-<input id="wname" placeholder="Name"><br>
-
-<input id="bank" placeholder="Bank Name"><br>
-
-<input id="acc" placeholder="Account Number"><br>
-
-<input id="ifsc" placeholder="IFSC"><br>
-
-<input id="wamount" placeholder="Amount"><br>
-
-<button onclick="submitWithdraw()">Submit</button>
-
-<button onclick="closeAll()">Close</button>
-
-</div>
-
 <script>
 
-/* USER DATA */
+/* USER */
 
 let currentUser = "";
 let balance = 0;
 
+/* GAME */
+
 let currentMultiplier = 1;
 let crashed = false;
-let userBet = 0;
 let gameRunning = false;
+
+let userBet = 0;
 let cashedOut = false;
+
+/* IMPORTANT */
+/* ROUND LOCK */
+
+let roundBetPlaced = false;
 
 /* AUTO LOGIN */
 
@@ -94,13 +44,16 @@ if(!mobile || !password){
 alert("Enter Details");
 
 return;
+
 }
 
 currentUser = mobile;
 
 localStorage.setItem("user",mobile);
 
-if(localStorage.getItem("balance_"+mobile) === null){
+/* NEW USER */
+
+if(localStorage.getItem("balance_"+mobile)==null){
 
 localStorage.setItem("balance_"+mobile,"0");
 
@@ -118,10 +71,9 @@ document.getElementById("loginPage").style.display="none";
 
 document.getElementById("gamePage").style.display="block";
 
-let savedBalance =
-localStorage.getItem("balance_"+currentUser);
-
-balance = Number(savedBalance || 0);
+balance = Number(
+localStorage.getItem("balance_"+currentUser)
+);
 
 updateBalance();
 
@@ -142,7 +94,7 @@ balance
 
 }
 
-/* GAME LOOP */
+/* START GAME */
 
 function startGame(){
 
@@ -150,25 +102,66 @@ if(gameRunning) return;
 
 gameRunning = true;
 
-currentMultiplier = 1;
-
 crashed = false;
 
 cashedOut = false;
+
+currentMultiplier = 1;
+
+userBet = 0;
+
+/* RESET ROUND LOCK */
+/* NEW ROUND */
+
+roundBetPlaced = false;
 
 document.getElementById("status").innerText = "";
 
 document.getElementById("timer").innerText = "";
 
-let crashPoint =
-(Number((Math.random()*8)+1).toFixed(2));
+/* FAST + MID CRASH */
+
+let random = Math.random();
+
+let crashPoint;
+
+/* 60% EARLY */
+
+if(random < 0.60){
+
+crashPoint =
+Number((Math.random()*1.5+1.20).toFixed(2));
+
+}
+
+/* 30% MID */
+
+else if(random < 0.90){
+
+crashPoint =
+Number((Math.random()*2+2.50).toFixed(2));
+
+}
+
+/* 10% BIG */
+
+else{
+
+crashPoint =
+Number((Math.random()*4+5).toFixed(2));
+
+}
+
+/* SLOW X SPEED */
 
 let loop = setInterval(()=>{
 
-currentMultiplier += 0.03;
+currentMultiplier += 0.02;
 
 document.getElementById("multi").innerText =
 currentMultiplier.toFixed(2)+"x";
+
+/* CRASH */
 
 if(currentMultiplier >= crashPoint){
 
@@ -180,6 +173,8 @@ gameRunning = false;
 
 document.getElementById("status").innerText =
 "CRASHED 💥 at "+crashPoint+"x";
+
+/* RESET BET */
 
 userBet = 0;
 
@@ -211,7 +206,7 @@ startGame();
 
 }
 
-},120);
+},170);
 
 }
 
@@ -227,6 +222,7 @@ if(bet<=0){
 alert("Invalid Bet");
 
 return;
+
 }
 
 if(bet>balance){
@@ -234,13 +230,17 @@ if(bet>balance){
 alert("Low Balance");
 
 return;
+
 }
 
-if(userBet>0){
+/* ONLY ONE BET PER ROUND */
 
-alert("Already Bet");
+if(roundBetPlaced){
+
+alert("Already Played This Round");
 
 return;
+
 }
 
 if(crashed){
@@ -248,7 +248,10 @@ if(crashed){
 alert("Wait Next Round");
 
 return;
+
 }
+
+/* PLACE BET */
 
 balance -= bet;
 
@@ -258,6 +261,13 @@ userBet = bet;
 
 cashedOut = false;
 
+/* LOCK ROUND */
+
+roundBetPlaced = true;
+
+document.getElementById("status").innerText =
+"Bet Placed ₹"+bet;
+
 }
 
 /* CASHOUT */
@@ -266,18 +276,18 @@ function cashout(){
 
 if(userBet<=0){
 
-alert("No Bet");
+alert("No Active Bet");
 
 return;
-}
 
-/* ONLY ONE CASHOUT */
+}
 
 if(cashedOut){
 
 alert("Already Cashed Out");
 
 return;
+
 }
 
 if(crashed){
@@ -287,6 +297,7 @@ alert("Round Crashed");
 userBet = 0;
 
 return;
+
 }
 
 let win =
@@ -299,39 +310,23 @@ updateBalance();
 document.getElementById("status").innerText =
 "You Won ₹"+win;
 
+/* STOP MULTIPLE CASHOUT */
+
 cashedOut = true;
+
+/* REMOVE BET */
 
 userBet = 0;
 
 }
 
-/* OPEN DEPOSIT */
+/* DEPOSIT */
 
 function openDeposit(){
 
 document.getElementById("depositBox").style.display="block";
 
 }
-
-/* OPEN WITHDRAW */
-
-function openWithdraw(){
-
-document.getElementById("withdrawBox").style.display="block";
-
-}
-
-/* CLOSE */
-
-function closeAll(){
-
-document.getElementById("depositBox").style.display="none";
-
-document.getElementById("withdrawBox").style.display="none";
-
-}
-
-/* DEPOSIT */
 
 function submitDeposit(){
 
@@ -343,6 +338,7 @@ if(amount < 500){
 alert("Minimum Deposit ₹500");
 
 return;
+
 }
 
 alert(
@@ -355,6 +351,12 @@ closeAll();
 
 /* WITHDRAW */
 
+function openWithdraw(){
+
+document.getElementById("withdrawBox").style.display="block";
+
+}
+
 function submitWithdraw(){
 
 let amount =
@@ -365,11 +367,22 @@ if(amount<=0){
 alert("Invalid Amount");
 
 return;
+
 }
 
 alert("Withdraw Request Sent");
 
 closeAll();
+
+}
+
+/* CLOSE */
+
+function closeAll(){
+
+document.getElementById("depositBox").style.display="none";
+
+document.getElementById("withdrawBox").style.display="none";
 
 }
 
@@ -384,6 +397,3 @@ location.reload();
 }
 
 </script>
-
-</body>
-</html>
