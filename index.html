@@ -1,67 +1,46 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<title>Aviator Game</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aviator Demo</title>
 
 <style>
 
 body{
 margin:0;
-padding:0;
 background:#111;
 font-family:Arial;
 color:white;
 text-align:center;
 }
 
-#loginPage,#gamePage{
-padding:20px;
-}
-
-input{
-padding:12px;
-margin:8px;
-width:220px;
-border:none;
-border-radius:6px;
-font-size:16px;
-}
-
-button{
-padding:12px 20px;
-margin:8px;
-border:none;
-border-radius:6px;
-background:#00bcd4;
-color:white;
-font-size:16px;
-font-weight:bold;
-}
-
 #topbar{
 background:#000;
 padding:15px;
+font-size:22px;
+font-weight:bold;
 display:flex;
 justify-content:space-between;
 align-items:center;
 }
 
 #multi{
-font-size:70px;
+font-size:75px;
+margin-top:70px;
 color:#00ff99;
-margin-top:60px;
 }
 
 #betTimer{
 font-size:22px;
+margin-top:15px;
 color:yellow;
-margin-top:10px;
 }
 
-#timer{
+#nextRound{
 font-size:20px;
-color:#00bcd4;
 margin-top:10px;
+color:#00bcd4;
 }
 
 #status{
@@ -69,16 +48,31 @@ font-size:26px;
 margin-top:20px;
 }
 
-.popup{
-display:none;
-position:fixed;
-top:50%;
-left:50%;
-transform:translate(-50%,-50%);
-background:#222;
-padding:20px;
-border-radius:10px;
-width:300px;
+input{
+padding:12px;
+width:220px;
+border:none;
+border-radius:8px;
+margin-top:20px;
+font-size:17px;
+}
+
+button{
+padding:12px 20px;
+margin:8px;
+border:none;
+border-radius:8px;
+background:#00bcd4;
+color:white;
+font-size:16px;
+font-weight:bold;
+}
+
+#history{
+margin-top:25px;
+padding:10px;
+font-size:18px;
+color:#ccc;
 }
 
 </style>
@@ -86,29 +80,11 @@ width:300px;
 
 <body>
 
-<!-- LOGIN -->
-
-<div id="loginPage">
-
-<h2>Login</h2>
-
-<input id="mobile" placeholder="Mobile"><br>
-
-<input id="password" type="password" placeholder="Password"><br>
-
-<button onclick="login()">LOGIN</button>
-
-</div>
-
-<!-- GAME -->
-
-<div id="gamePage" style="display:none;">
-
 <div id="topbar">
 
-<h3>Balance ₹<span id="balance">0</span></h3>
+<div>Demo Balance ₹<span id="balance">1000</span></div>
 
-<button onclick="logout()">Logout</button>
+<button onclick="resetBalance()">Reset</button>
 
 </div>
 
@@ -116,9 +92,9 @@ width:300px;
 
 <div id="betTimer">Bet Time: 5</div>
 
-<div id="timer"></div>
+<div id="nextRound"></div>
 
-<input id="betAmount" placeholder="Bet Amount"><br>
+<input type="number" id="betAmount" placeholder="Enter Bet"><br>
 
 <button onclick="placeBet()">BET</button>
 
@@ -126,149 +102,68 @@ width:300px;
 
 <h2 id="status"></h2>
 
-<br>
-
-<button onclick="openDeposit()">Deposit</button>
-
-<button onclick="openWithdraw()">Withdraw</button>
-
-</div>
-
-<!-- DEPOSIT -->
-
-<div id="depositBox" class="popup">
-
-<h2>Deposit</h2>
-
-<p>Minimum ₹500</p>
-
-<p>UPI: 7260957661@ybl</p>
-
-<input id="depAmount" placeholder="Amount"><br>
-
-<input id="utr" placeholder="UTR Number"><br>
-
-<button onclick="submitDeposit()">Submit</button>
-
-<button onclick="closeAll()">Close</button>
-
-</div>
-
-<!-- WITHDRAW -->
-
-<div id="withdrawBox" class="popup">
-
-<h2>Withdraw</h2>
-
-<p>Minimum ₹500</p>
-
-<input id="wamount" placeholder="Amount"><br>
-
-<button onclick="submitWithdraw()">Submit</button>
-
-<button onclick="closeAll()">Close</button>
-
+<div id="history">
+Last Crashes:
+<span id="historyList">-</span>
 </div>
 
 <script>
 
-/* LOGIN */
+let balance = 1000;
 
-let currentUser = localStorage.getItem("user") || "";
+let multiplier = 1;
 
-let balance = Number(localStorage.getItem("balance")) || 0;
+let crashed = false;
 
-if(currentUser!=""){
+let userBet = 0;
 
-document.getElementById("loginPage").style.display="none";
+let betClosed = false;
 
-document.getElementById("gamePage").style.display="block";
+let cashedOut = false;
 
-document.getElementById("balance").innerText=balance;
+let history = [];
 
-}
+document.getElementById("balance").innerText = balance;
 
-function login(){
-
-let mobile=document.getElementById("mobile").value;
-
-let password=document.getElementById("password").value;
-
-if(mobile=="" || password==""){
-
-alert("Enter Details");
-
-return;
-
-}
-
-localStorage.setItem("user",mobile);
-
-currentUser=mobile;
-
-document.getElementById("loginPage").style.display="none";
-
-document.getElementById("gamePage").style.display="block";
-
-document.getElementById("balance").innerText=balance;
-
-}
-
-function logout(){
-
-localStorage.removeItem("user");
-
-location.reload();
-
-}
-
-/* GAME */
-
-let multiplier=1;
-
-let crashed=false;
-
-let userBet=0;
-
-let betClosed=false;
-
-let cashedOut=false;
+/* START ROUND */
 
 function startRound(){
 
-multiplier=1;
+multiplier = 1;
 
-crashed=false;
+crashed = false;
 
-betClosed=false;
+userBet = 0;
 
-cashedOut=false;
+betClosed = false;
 
-userBet=0;
+cashedOut = false;
 
-document.getElementById("multi").innerText="1.00x";
+document.getElementById("multi").innerText = "1.00x";
 
-document.getElementById("status").innerText="";
+document.getElementById("status").innerText = "";
 
-let betTime=5;
+document.getElementById("nextRound").innerText = "";
 
-document.getElementById("betTimer").innerText=
-"Bet Time: "+betTime;
+let betTime = 5;
 
-let betLoop=setInterval(()=>{
+document.getElementById("betTimer").innerText =
+"Bet Time: " + betTime;
+
+let betLoop = setInterval(()=>{
 
 betTime--;
 
-document.getElementById("betTimer").innerText=
-"Bet Time: "+betTime;
+document.getElementById("betTimer").innerText =
+"Bet Time: " + betTime;
 
-if(betTime<=0){
+if(betTime <= 0){
 
 clearInterval(betLoop);
 
-betClosed=true;
+betClosed = true;
 
-document.getElementById("betTimer").innerText=
+document.getElementById("betTimer").innerText =
 "BET CLOSED";
 
 startFlying();
@@ -279,67 +174,92 @@ startFlying();
 
 }
 
+/* FLY */
+
 function startFlying(){
 
-let random=Math.random();
+let random = Math.random();
 
 let crashPoint;
 
-if(random<0.60){
+/* Mostly low crashes */
 
-crashPoint=(Math.random()*1.5+1.20);
+if(random < 0.60){
 
-}else if(random<0.90){
-
-crashPoint=(Math.random()*2+2.50);
-
-}else{
-
-crashPoint=(Math.random()*4+5);
+crashPoint = Number(
+(Math.random()*1.5 + 1.20).toFixed(2)
+);
 
 }
 
-let loop=setInterval(()=>{
+/* Medium */
+
+else if(random < 0.90){
+
+crashPoint = Number(
+(Math.random()*2 + 2.50).toFixed(2)
+);
+
+}
+
+/* High */
+
+else{
+
+crashPoint = Number(
+(Math.random()*5 + 5).toFixed(2)
+);
+
+}
+
+let flyLoop = setInterval(()=>{
 
 if(crashed){
 
-clearInterval(loop);
+clearInterval(flyLoop);
 
 return;
 
 }
 
-multiplier+=0.02;
+multiplier += 0.02;
 
-document.getElementById("multi").innerText=
-multiplier.toFixed(2)+"x";
+document.getElementById("multi").innerText =
+multiplier.toFixed(2) + "x";
 
-if(multiplier>=crashPoint){
+if(multiplier >= crashPoint){
 
-crashed=true;
+crashed = true;
 
-clearInterval(loop);
+clearInterval(flyLoop);
 
-document.getElementById("status").innerText=
-"CRASHED 💥 at "+crashPoint.toFixed(2)+"x";
+history.unshift(crashPoint.toFixed(2)+"x");
 
-let t=3;
+history = history.slice(0,10);
 
-document.getElementById("timer").innerText=
-"Next Round In "+t;
+document.getElementById("historyList").innerText =
+history.join(" | ");
 
-let timerLoop=setInterval(()=>{
+document.getElementById("status").innerText =
+"CRASHED 💥 at " + crashPoint.toFixed(2) + "x";
+
+let t = 3;
+
+document.getElementById("nextRound").innerText =
+"Next Round In " + t;
+
+let timerLoop = setInterval(()=>{
 
 t--;
 
-document.getElementById("timer").innerText=
-"Next Round In "+t;
+document.getElementById("nextRound").innerText =
+"Next Round In " + t;
 
-if(t<=0){
+if(t <= 0){
 
 clearInterval(timerLoop);
 
-document.getElementById("timer").innerText="";
+document.getElementById("nextRound").innerText = "";
 
 startRound();
 
@@ -353,13 +273,12 @@ startRound();
 
 }
 
-startRound();
-
 /* BET */
 
 function placeBet(){
 
-let bet=Number(document.getElementById("betAmount").value);
+let bet =
+Number(document.getElementById("betAmount").value);
 
 if(betClosed){
 
@@ -369,7 +288,7 @@ return;
 
 }
 
-if(userBet>0){
+if(userBet > 0){
 
 alert("Already Bet");
 
@@ -377,7 +296,7 @@ return;
 
 }
 
-if(bet<=0){
+if(bet <= 0){
 
 alert("Invalid Bet");
 
@@ -385,7 +304,7 @@ return;
 
 }
 
-if(bet>balance){
+if(bet > balance){
 
 alert("Low Balance");
 
@@ -393,16 +312,14 @@ return;
 
 }
 
-balance-=bet;
+balance -= bet;
 
-localStorage.setItem("balance",balance);
+document.getElementById("balance").innerText = balance;
 
-document.getElementById("balance").innerText=balance;
+userBet = bet;
 
-userBet=bet;
-
-document.getElementById("status").innerText=
-"Bet Placed ₹"+bet;
+document.getElementById("status").innerText =
+"Bet Placed ₹" + bet;
 
 }
 
@@ -410,7 +327,7 @@ document.getElementById("status").innerText=
 
 function cashout(){
 
-if(userBet<=0){
+if(userBet <= 0){
 
 alert("No Bet");
 
@@ -434,82 +351,32 @@ return;
 
 }
 
-let win=Math.floor(userBet*multiplier);
+let win = Math.floor(userBet * multiplier);
 
-balance+=win;
+balance += win;
 
-localStorage.setItem("balance",balance);
+document.getElementById("balance").innerText = balance;
 
-document.getElementById("balance").innerText=balance;
+document.getElementById("status").innerText =
+"You Won ₹" + win;
 
-document.getElementById("status").innerText=
-"You Won ₹"+win;
+cashedOut = true;
 
-cashedOut=true;
-
-userBet=0;
+userBet = 0;
 
 }
 
-/* DEPOSIT */
+/* RESET */
 
-function openDeposit(){
+function resetBalance(){
 
-document.getElementById("depositBox").style.display="block";
+balance = 1000;
 
-}
-
-function submitDeposit(){
-
-let amount=Number(document.getElementById("depAmount").value);
-
-if(amount<500){
-
-alert("Minimum Deposit ₹500");
-
-return;
+document.getElementById("balance").innerText = balance;
 
 }
 
-alert("Deposit Request Sent\nUPI: 7260957661@ybl");
-
-closeAll();
-
-}
-
-/* WITHDRAW */
-
-function openWithdraw(){
-
-document.getElementById("withdrawBox").style.display="block";
-
-}
-
-function submitWithdraw(){
-
-let amount=Number(document.getElementById("wamount").value);
-
-if(amount<500){
-
-alert("Minimum Withdraw ₹500");
-
-return;
-
-}
-
-alert("Withdraw Request Sent");
-
-closeAll();
-
-}
-
-function closeAll(){
-
-document.getElementById("depositBox").style.display="none";
-
-document.getElementById("withdrawBox").style.display="none";
-
-}
+startRound();
 
 </script>
 
