@@ -1,289 +1,687 @@
-/* RESET ROUND LOCK */
-/* NEW ROUND */
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Aviator Demo</title>
 
-roundBetPlaced = false;
+  <style>
+    body{
+      margin:0;
+      font-family:Arial;
+      background:#111;
+      color:white;
+      text-align:center;
+    }
 
-document.getElementById("status").innerText = "";
+    .page{
+      display:none;
+      padding:20px;
+    }
 
-document.getElementById("timer").innerText = "";
+    input,button{
+      padding:12px;
+      margin:5px;
+      border:none;
+      border-radius:5px;
+      font-size:16px;
+    }
 
-/* FAST + MID CRASH */
+    button{
+      background:#00bcd4;
+      color:white;
+      font-weight:bold;
+    }
 
-let random = Math.random();
+    #menu{
+      position:fixed;
+      top:0;
+      left:-220px;
+      width:200px;
+      height:100%;
+      background:#222;
+      padding-top:40px;
+      transition:0.3s;
+      z-index:999;
+    }
 
-let crashPoint;
+    #menu button{
+      width:90%;
+      margin:10px;
+    }
 
-/* 60% EARLY */
+    #topbar{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      padding:10px;
+      background:#000;
+    }
 
-if(random < 0.60){
+    .popup{
+      display:none;
+      position:fixed;
+      top:50%;
+      left:50%;
+      transform:translate(-50%,-50%);
+      background:#222;
+      padding:20px;
+      border-radius:10px;
+      width:300px;
+      z-index:1000;
+    }
 
-crashPoint =
-Number((Math.random()*1.5+1.20).toFixed(2));
+    h1{
+      font-size:65px;
+      color:#00ff99;
+      margin-top:50px;
+    }
+
+    #status{
+      font-size:24px;
+      margin-top:20px;
+    }
+
+    #timer{
+      color:yellow;
+      font-size:22px;
+      margin-top:10px;
+    }
+  </style>
+</head>
+
+<body>
+
+<!-- LOGIN -->
+
+<div id="loginPage" class="page" style="display:block;">
+
+  <h2>Login</h2>
+
+  <input id="mobile" placeholder="Mobile Number"><br>
+
+  <input id="password" type="password" placeholder="Password"><br>
+
+  <button onclick="login()">Login</button>
+
+</div>
+
+<!-- GAME -->
+
+<div id="gamePage" class="page">
+
+  <div id="topbar">
+
+    <button onclick="openMenu()">☰</button>
+
+    <h3>Balance ₹<span id="balance">0</span></h3>
+
+  </div>
+
+  <h1 id="multi">1.00x</h1>
+
+  <div id="timer"></div>
+
+  <input id="betAmount" placeholder="Bet Amount"><br>
+
+  <button onclick="placeBet()">BET</button>
+
+  <button onclick="cashout()">CASHOUT</button>
+
+  <h3 id="status"></h3>
+
+</div>
+
+<!-- MENU -->
+
+<div id="menu">
+
+  <button onclick="showDeposit()">Deposit</button>
+
+  <button onclick="showWithdraw()">Withdraw</button>
+
+  <button onclick="logout()">Logout</button>
+
+</div>
+
+<!-- DEPOSIT -->
+
+<div id="depositBox" class="popup">
+
+  <h2>Deposit</h2>
+
+  <p>Minimum ₹500</p>
+
+  <p>UPI: 7260957661@ybl</p>
+
+  <input id="depAmount" placeholder="Amount"><br>
+
+  <input id="utr" placeholder="UTR Number"><br>
+
+  <button onclick="submitDeposit()">Submit</button>
+
+  <button onclick="closeAll()">Close</button>
+
+</div>
+
+<!-- WITHDRAW -->
+
+<div id="withdrawBox" class="popup">
+
+  <h2>Withdraw</h2>
+
+  <p>Minimum ₹500</p>
+
+  <input id="wname" placeholder="Name"><br>
+
+  <input id="bank" placeholder="Bank Name"><br>
+
+  <input id="acc" placeholder="Account Number"><br>
+
+  <input id="ifsc" placeholder="IFSC"><br>
+
+  <input id="wamount" placeholder="Amount"><br>
+
+  <button onclick="submitWithdraw()">Submit</button>
+
+  <button onclick="closeAll()">Close</button>
+
+</div>
+
+<script type="module">
+
+import { initializeApp }
+from "https://www.gstatic.com/firebasejs/12.12.0/firebase-app.js";
+
+import {
+  getDatabase,
+  ref,
+  set,
+  get,
+  child,
+  update,
+  push,
+  onValue
+}
+from "https://www.gstatic.com/firebasejs/12.12.0/firebase-database.js";
+
+/* FIREBASE */
+
+const firebaseConfig = {
+
+  apiKey: "AIzaSyDCYEveGXPy1nORiyyeyIjsbfcqEy4iaVg",
+
+  authDomain: "avaitior-game.firebaseapp.com",
+
+  databaseURL: "https://avaitior-game-default-rtdb.firebaseio.com",
+
+  projectId: "avaitior-game"
+
+};
+
+const app = initializeApp(firebaseConfig);
+
+const db = getDatabase(app);
+
+/* USER */
+
+let currentUser = localStorage.getItem("user") || "";
+
+let balance = 0;
+
+/* AUTO LOGIN */
+
+if(currentUser){
+
+  document.getElementById("loginPage").style.display="none";
+
+  document.getElementById("gamePage").style.display="block";
+
+  loadUser();
+
+}else{
+
+  document.getElementById("loginPage").style.display="block";
 
 }
 
-/* 30% MID */
+/* LOGIN */
 
-else if(random < 0.90){
+window.login = ()=>{
 
-crashPoint =
-Number((Math.random()*2+2.50).toFixed(2));
+  let m = document.getElementById("mobile").value;
 
-}
+  let p = document.getElementById("password").value;
 
-/* 10% BIG */
+  if(!m || !p){
 
-else{
+    alert("Enter Details");
 
-crashPoint =
-Number((Math.random()*4+5).toFixed(2));
+    return;
 
-}
+  }
 
-/* SLOW X SPEED */
+  currentUser = m;
 
-let loop = setInterval(()=>{
+  localStorage.setItem("user",m);
 
-currentMultiplier += 0.02;
+  get(child(ref(db),'users/'+m)).then((snap)=>{
 
-document.getElementById("multi").innerText =
-currentMultiplier.toFixed(2)+"x";
+    if(snap.exists()){
 
-/* CRASH */
+      let data = snap.val();
 
-if(currentMultiplier >= crashPoint){
+      if(data.password == p){
 
-clearInterval(loop);
+        document.getElementById("loginPage").style.display="none";
 
-crashed = true;
+        document.getElementById("gamePage").style.display="block";
 
-gameRunning = false;
+        loadUser();
 
-document.getElementById("status").innerText =
-"CRASHED 💥 at "+crashPoint+"x";
+      }else{
 
-/* RESET BET */
+        alert("Wrong Password");
 
-userBet = 0;
+      }
 
-/* 3 SECOND TIMER */
+    }else{
 
-let t = 3;
+      set(ref(db,'users/'+m),{
 
-document.getElementById("timer").innerText =
-"Next Round In "+t;
+        password:p,
 
-let timerLoop = setInterval(()=>{
+        balance:0
 
-t--;
+      }).then(()=>{
 
-document.getElementById("timer").innerText =
-"Next Round In "+t;
+        document.getElementById("loginPage").style.display="none";
 
-if(t<=0){
+        document.getElementById("gamePage").style.display="block";
 
-clearInterval(timerLoop);
+        loadUser();
 
-document.getElementById("timer").innerText = "";
+      });
 
-startGame();
+    }
 
-}
+  });
 
-},1000);
+};
 
-}
+/* LOAD USER */
 
-},170);
+function loadUser(){
 
-}
+  onValue(ref(db,'users/'+currentUser),(snap)=>{
 
-/* BET */
+    if(snap.exists()){
 
-function placeBet(){
+      let data = snap.val();
 
-let bet =
-Number(document.getElementById("betInput").value);
+      balance = Number(data.balance || 0);
 
-if(bet<=0){
+      document.getElementById("balance").innerText = balance;
 
-alert("Invalid Bet");
+    }
 
-return;
+  });
 
 }
 
-if(bet>balance){
+/* SAVE BALANCE */
 
-alert("Low Balance");
+function saveBalance(){
 
-return;
+  update(ref(db,'users/'+currentUser),{
 
-}
+    balance:Number(balance)
 
-/* ONLY ONE BET PER ROUND */
-
-if(roundBetPlaced){
-
-alert("Already Played This Round");
-
-return;
+  });
 
 }
 
-if(crashed){
+/* MENU */
 
-alert("Wait Next Round");
+window.openMenu = ()=>{
 
-return;
+  let menu = document.getElementById("menu");
 
-}
+  if(menu.style.left=="0px"){
 
-/* PLACE BET */
+    menu.style.left="-220px";
 
-balance -= bet;
+  }else{
 
-updateBalance();
+    menu.style.left="0px";
 
-userBet = bet;
+  }
 
-cashedOut = false;
+};
 
-/* LOCK ROUND */
+window.closeAll = ()=>{
 
-roundBetPlaced = true;
+  document.getElementById("menu").style.left="-220px";
 
-document.getElementById("status").innerText =
-"Bet Placed ₹"+bet;
+  document.getElementById("depositBox").style.display="none";
 
-}
+  document.getElementById("withdrawBox").style.display="none";
 
-/* CASHOUT */
+};
 
-function cashout(){
+window.showDeposit = ()=>{
 
-if(userBet<=0){
+  document.getElementById("depositBox").style.display="block";
 
-alert("No Active Bet");
+};
 
-return;
+window.showWithdraw = ()=>{
 
-}
+  document.getElementById("withdrawBox").style.display="block";
 
-if(cashedOut){
-
-alert("Already Cashed Out");
-
-return;
-
-}
-
-if(crashed){
-
-alert("Round Crashed");
-
-userBet = 0;
-
-return;
-
-}
-
-let win =
-Math.floor(userBet * currentMultiplier);
-
-balance += win;
-
-updateBalance();
-
-document.getElementById("status").innerText =
-"You Won ₹"+win;
-
-/* STOP MULTIPLE CASHOUT */
-
-cashedOut = true;
-
-/* REMOVE BET */
-
-userBet = 0;
-
-}
-
-/* DEPOSIT */
-
-function openDeposit(){
-
-document.getElementById("depositBox").style.display="block";
-
-}
-
-function submitDeposit(){
-
-let amount =
-Number(document.getElementById("depAmount").value);
-
-if(amount < 500){
-
-alert("Minimum Deposit ₹500");
-
-return;
-
-}
-
-alert(
-"Deposit Request Sent\nUPI: 7260957661@ybl"
-);
-
-closeAll();
-
-}
-
-/* WITHDRAW */
-
-function openWithdraw(){
-
-document.getElementById("withdrawBox").style.display="block";
-
-}
-
-function submitWithdraw(){
-
-let amount =
-Number(document.getElementById("wamount").value);
-
-if(amount<=0){
-
-alert("Invalid Amount");
-
-return;
-
-}
-
-alert("Withdraw Request Sent");
-
-closeAll();
-
-}
-
-/* CLOSE */
-
-function closeAll(){
-
-document.getElementById("depositBox").style.display="none";
-
-document.getElementById("withdrawBox").style.display="none";
-
-}
+};
 
 /* LOGOUT */
 
-function logout(){
+window.logout = ()=>{
 
-localStorage.removeItem("user");
+  localStorage.removeItem("user");
 
-location.reload();
+  location.reload();
+
+};
+
+/* GAME */
+
+let multiplier = 1;
+
+let crashed = false;
+
+let userBet = 0;
+
+let roundBetPlaced = false;
+
+let cashedOut = false;
+
+function startRound(){
+
+  multiplier = 1;
+
+  crashed = false;
+
+  roundBetPlaced = false;
+
+  cashedOut = false;
+
+  document.getElementById("status").innerText = "";
+
+  document.getElementById("timer").innerText = "";
+
+  let random = Math.random();
+
+  let crashPoint;
+
+  /* 60% jaldi */
+
+  if(random < 0.60){
+
+    crashPoint = Number(
+      (Math.random()*1.5 + 1.20).toFixed(2)
+    );
+
+  }
+
+  /* 30% medium */
+
+  else if(random < 0.90){
+
+    crashPoint = Number(
+      (Math.random()*2 + 2.50).toFixed(2)
+    );
+
+  }
+
+  /* 10% high */
+
+  else{
+
+    crashPoint = Number(
+      (Math.random()*4 + 5).toFixed(2)
+    );
+
+  }
+
+  let loop = setInterval(()=>{
+
+    if(crashed){
+
+      clearInterval(loop);
+
+      return;
+
+    }
+
+    multiplier += 0.02;
+
+    document.getElementById("multi").innerText =
+    multiplier.toFixed(2)+"x";
+
+    if(multiplier >= crashPoint){
+
+      crashed = true;
+
+      clearInterval(loop);
+
+      document.getElementById("status").innerText =
+      "CRASHED 💥 at "+crashPoint+"x";
+
+      userBet = 0;
+
+      let t = 3;
+
+      document.getElementById("timer").innerText =
+      "Next Round In "+t;
+
+      let timerLoop = setInterval(()=>{
+
+        t--;
+
+        document.getElementById("timer").innerText =
+        "Next Round In "+t;
+
+        if(t<=0){
+
+          clearInterval(timerLoop);
+
+          startRound();
+
+        }
+
+      },1000);
+
+    }
+
+  },170);
 
 }
 
+startRound();
+
+/* BET */
+
+window.placeBet = ()=>{
+
+  let bet = Number(document.getElementById("betAmount").value);
+
+  if(bet<=0){
+
+    alert("Invalid Bet");
+
+    return;
+
+  }
+
+  if(bet>balance){
+
+    alert("Low Balance");
+
+    return;
+
+  }
+
+  if(roundBetPlaced){
+
+    alert("Already Played This Round");
+
+    return;
+
+  }
+
+  if(crashed){
+
+    alert("Wait Next Round");
+
+    return;
+
+  }
+
+  balance -= bet;
+
+  saveBalance();
+
+  userBet = bet;
+
+  roundBetPlaced = true;
+
+  document.getElementById("status").innerText =
+  "Bet Placed ₹"+bet;
+
+};
+
+/* CASHOUT */
+
+window.cashout = ()=>{
+
+  if(userBet<=0){
+
+    alert("No Bet");
+
+    return;
+
+  }
+
+  if(cashedOut){
+
+    alert("Already Cashed Out");
+
+    return;
+
+  }
+
+  if(crashed){
+
+    alert("Round Crashed");
+
+    userBet = 0;
+
+    return;
+
+  }
+
+  let win = Math.floor(userBet * multiplier);
+
+  balance += win;
+
+  saveBalance();
+
+  document.getElementById("status").innerText =
+  "You Won ₹"+win;
+
+  cashedOut = true;
+
+  userBet = 0;
+
+};
+
+/* DEPOSIT */
+
+window.submitDeposit = ()=>{
+
+  let amount = document.getElementById("depAmount").value;
+
+  let utr = document.getElementById("utr").value;
+
+  if(Number(amount) < 500){
+
+    alert("Minimum Deposit ₹500");
+
+    return;
+
+  }
+
+  push(ref(db,'deposits'),{
+
+    user:currentUser,
+
+    amount:Number(amount),
+
+    utr:utr,
+
+    status:"pending"
+
+  });
+
+  alert("Deposit Request Sent");
+
+  closeAll();
+
+};
+
+/* WITHDRAW */
+
+window.submitWithdraw = ()=>{
+
+  let name = document.getElementById("wname").value;
+
+  let bank = document.getElementById("bank").value;
+
+  let acc = document.getElementById("acc").value;
+
+  let ifsc = document.getElementById("ifsc").value;
+
+  let amount = document.getElementById("wamount").value;
+
+  if(Number(amount) < 500){
+
+    alert("Minimum Withdraw ₹500");
+
+    return;
+
+  }
+
+  push(ref(db,'withdraws'),{
+
+    user:currentUser,
+
+    name:name,
+
+    bank:bank,
+
+    account:acc,
+
+    ifsc:ifsc,
+
+    amount:Number(amount),
+
+    status:"pending"
+
+  });
+
+  alert("Withdraw Request Sent");
+
+  closeAll();
+
+};
+
 </script>
+
 </body>
 </html>
