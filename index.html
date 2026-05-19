@@ -1,4 +1,9 @@
 
+        });
+
+        if(t<=0){
+
+          
 /* MENU */
 
 window.openMenu = ()=>{
@@ -110,12 +115,7 @@ function startMainGame(){
         update(ref(db,'game'),{
 
           timer:t
-
-        });
-
-        if(t<=0){
-
-          clearInterval(timerLoop);
+;
 
           adminLoopStarted=false;
 
